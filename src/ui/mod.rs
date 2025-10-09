@@ -1,15 +1,12 @@
-use std::ops::Index;
-
 use anyhow::{Context, Result};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
     DefaultTerminal, Frame,
     layout::{Constraint, Direction, Layout},
-    text::Text,
     widgets::{Block, Borders, Paragraph, StatefulWidget, Widget},
 };
 
-use crate::state::{Mode, State, tabs::Tab};
+use crate::state::{Mode, State};
 use crate::ui::{err_term::ErrorTerm, top::Top};
 
 mod err_term;
@@ -56,7 +53,7 @@ impl Term {
     pub fn handle_keypress(&mut self, e: KeyEvent, state: &mut State) {
         match (e.code, state.mode.clone()) {
             (KeyCode::Esc, _) => state.mode = Mode::Normal,
-            (KeyCode::Char('q'), _) => state.exit = true,
+            (KeyCode::Char('q'), Mode::Normal) => state.exit = true,
             (KeyCode::Char('i'), _) => state.mode = Mode::Insert,
             (KeyCode::Char('n'), Mode::Normal) => state.tab_state.next_tab(),
             (KeyCode::Char('p'), Mode::Normal) => state.tab_state.prev_tab(),
@@ -102,55 +99,21 @@ impl StatefulWidget for &mut Term {
             }
         };
 
-        let tab = state
-            .tab_state
-            .tab_list
-            .iter()
-            .find(|i| i.id == state.tab_state.idx);
-
-        if state.tab_state.tab_list.iter().len() != 0 {
-            match tab {
-                Some(tab) => {
-                    Paragraph::new(
-                        String::from("\nTabname ")
-                            + &tab.title
-                            + "\n id "
-                            + &tab.id.to_string()
-                            + &state.tab_state.idx.to_string(),
-                    )
-                    .block(Block::bordered())
-                    .render(page[0], buf);
-
-                    Paragraph::new(
-                        String::from("\nCurr_tab ")
-                            + &state.tab_state.idx.to_string()
-                            + " len "
-                            + &state.tab_state.tab_list.len().to_string(),
-                    )
-                    // .block(Block::bordered())
-                    .render(page[0], buf);
-                }
-                None => {
-                    Paragraph::new("Tab not found\n\n")
-                        .block(Block::bordered())
-                        .render(page[0], buf);
-
-                    Paragraph::new(
-                        String::from("\nCurr idx")
-                            + &state.tab_state.idx.to_string()
-                            + "\n len "
-                            + &state.tab_state.tab_list.len().to_string()
-                            + "\nTabTitle"
-                            + &state.tab_state.tab_list[state.tab_state.idx as usize].title
-                            + "\nTabIdx"
-                            + &state.tab_state.tab_list[state.tab_state.idx as usize]
-                                .id
-                                .to_string(),
-                    )
-                    .block(Block::bordered())
-                    .render(page[0], buf);
-                }
-            }
+        if state.tab_state.tab_list.len() == 0 && state.mode == Mode::Normal{
+            Paragraph::new(
+                "Welcome to my simple Terminal Broswer".to_string()
+                    + "\n\n"
+                    + "i -> insert mode\n"
+                    + "Esc -> Normal mode\n"
+                    + "In normal mode: \t\n"
+                    + "t -> New Tab\t\n"
+                    + "n -> next tab\t\n"
+                    + "p -> prev. tab\t\n"
+                    + "d -> delete tab\t\n",
+            )
+            .alignment(ratatui::layout::Alignment::Center)
+            .block(Block::new().borders(Borders::all()))
+            .render(area, buf);
         }
     }
 }

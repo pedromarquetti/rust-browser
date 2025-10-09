@@ -1,5 +1,4 @@
 use std::fmt::Display;
-use tabs::Tab;
 
 use crate::state::tabs::TabState;
 
@@ -15,7 +14,7 @@ pub struct State {
     pub curr_key: String,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub enum Mode {
     Insert,
     #[default]

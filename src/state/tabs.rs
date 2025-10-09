@@ -1,8 +1,3 @@
-use std::ops::Index;
-
-use anyhow::Result;
-use ratatui::text::Text;
-
 #[derive(Debug, Clone, Default)]
 pub struct Tab {
     pub id: i32,
