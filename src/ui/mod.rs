@@ -99,7 +99,7 @@ impl StatefulWidget for &mut Term {
             }
         };
 
-        if state.tab_state.tab_list.len() == 0 && state.mode == Mode::Normal{
+        if state.tab_state.tab_list.len() == 0 && state.mode == Mode::Normal {
             Paragraph::new(
                 "Welcome to my simple Terminal Broswer".to_string()
                     + "\n\n"

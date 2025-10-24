@@ -5,21 +5,20 @@ use ratatui::widgets::Paragraph;
 use ratatui::widgets::Widget;
 
 use crate::state::State;
-use crate::ui::tabs::TabWidget;
 use crate::ui::Mode;
 use crate::ui::err_term::ErrorTerm;
+use crate::ui::tabs::TabWidget;
 
 #[derive(Debug, Clone)]
 /// Widget for handling the top bar
-pub struct Top{
-}
+pub struct Top {}
 
 impl Top {
     pub fn new() -> Self {
         Top {}
     }
 
-    pub fn create(&mut self, area: Rect, buf: &mut Buffer,state: &mut State) -> Result<()> {
+    pub fn create(&mut self, area: Rect, buf: &mut Buffer, state: &mut State) -> Result<()> {
         self.render(area, buf, state);
         Ok(())
     }

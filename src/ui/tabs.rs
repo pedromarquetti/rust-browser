@@ -5,7 +5,7 @@ use ratatui::{
     widgets::{StatefulWidget, Tabs, Widget},
 };
 
-use crate::state::{State, tabs::Tab};
+use crate::state::State;
 
 #[derive(Debug)]
 pub struct TabWidget {}
@@ -25,12 +25,14 @@ impl StatefulWidget for &TabWidget {
     type State = State;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-
-        let titles = state.tab_state.tab_list.iter().map(|i| return i.title.clone());
+        let titles = state
+            .tab_state
+            .tab_list
+            .iter()
+            .map(|i| return i.title.clone());
 
         Tabs::new(titles)
             .select(state.tab_state.idx as usize)
             .render(area, buf);
-        
     }
 }
