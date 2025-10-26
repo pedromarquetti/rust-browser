@@ -1,3 +1,5 @@
+use anyhow::{Context, Result};
+
 #[derive(Debug, Clone, Default)]
 pub struct Tab {
     pub id: i32,
@@ -47,22 +49,42 @@ impl TabState {
         }
     }
 
-    pub fn new_tab(&mut self) {
+    pub fn new_tab<S:Into<String>>(&mut self,title:S) {
         self.tab_list.push(Tab::new(
             self.tab_list.len() as i32,
-            String::from("New Tab") + &String::from(self.tab_list.len().to_string()),
+            title.into()
         ))
     }
 
-    pub fn next_tab(&mut self) {
+    pub fn next_tab(&mut self) -> Result<()> {
         if self.idx <= self.tab_list.len() as i32 - 2 {
             self.idx = self.idx + 1;
+            let nxt = self
+                .tab_list
+                .iter()
+                .find(|i| i.id == self.idx)
+                .context("Next tab not found!")?;
+            self.curr_tab = nxt.clone();
         }
+
+        Ok(())
     }
 
-    pub fn prev_tab(&mut self) {
+    pub fn prev_tab(&mut self) -> Result<()> {
         if self.idx >= 1 {
             self.idx = self.idx - 1;
+            let prev = self
+                .tab_list
+                .iter()
+                .find(|i| i.id == self.idx)
+                .context("Next tab not found!")?;
+
+            self.curr_tab = prev.clone();
         }
+        Ok(())
+    }
+
+    pub fn set_title<S: Into<String>>(&mut self, title: S) {
+        self.curr_tab.title = title.into()
     }
 }
