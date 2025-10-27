@@ -4,11 +4,11 @@ use anyhow::{Context, Result};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
     DefaultTerminal, Frame,
-    layout::{Constraint, Direction, Layout, Position},
+    layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, Paragraph, StatefulWidget, Widget},
 };
 
-use crate::state::{State, tabs::Tab, term::Mode};
+use crate::state::{Mode, State};
 use crate::ui::{err_term::ErrorTerm, top::Top};
 
 mod err_term;
@@ -26,7 +26,7 @@ impl Term {
 
     pub fn run(&mut self, terminal: &mut DefaultTerminal, state: &mut State) -> Result<()> {
         // while !self.exit {
-        while !state.term_state.exit {
+        while !state.exit {
             terminal
                 .draw(|frame| self.draw(frame, state))
                 .context("Failed to run terminal.draw!")?;
@@ -195,7 +195,7 @@ impl StatefulWidget for &mut Term {
             }
         };
 
-        if state.term_state.tab_state.tab_list.len() == 0 && state.term_state.mode == Mode::Normal {
+        if state.term_state.tab_state.tab_list.len() == 0 && state.mode == Mode::Normal {
             Paragraph::new(
                 "Welcome to my simple Terminal Broswer".to_string()
                     + "\n\n"

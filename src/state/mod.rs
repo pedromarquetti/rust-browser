@@ -2,12 +2,12 @@ use std::fmt::Display;
 
 use crate::state::{
     input::InputState,
-    tabs::TabState,
+    tab_state::TabState,
     term::{Mode, TermState},
 };
 
 pub mod input;
-pub mod tabs;
+pub mod tab_state;
 pub mod term;
 
 #[derive(Debug, Default, Clone)]
@@ -36,11 +36,8 @@ impl State {
         self.term_state.mode = Mode::Normal;
         self.term_state.input_state = None;
         match &self.term_state.input_state {
-            Some(input) => {
-                return Some(input.value.clone())
-            }
+            Some(input) => return Some(input.value.clone()),
             None => todo!(),
         }
     }
-
 }

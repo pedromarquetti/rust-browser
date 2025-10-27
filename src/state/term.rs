@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::state::{input::InputState, tabs::TabState};
+use crate::state::{input::InputState, tab_state::TabState};
 
 #[derive(Debug, Clone, Default)]
 pub struct TermState {
