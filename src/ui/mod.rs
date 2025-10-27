@@ -189,7 +189,7 @@ impl StatefulWidget for &mut Term {
             .create(top[0], buf, state)
             .context("Error while creating Top widget")
         {
-            Ok(()) => {}
+            Ok(ok) => {ok}
             Err(err) => {
                 ErrorTerm::new(err.to_string()).render(area, buf);
             }

@@ -40,10 +40,10 @@ impl StatefulWidget for &mut Top {
                     .render(area, buf);
             }
             Mode::Normal => match TabWidget::new().create(area, buf, state) {
-                Ok(ok)=>{
-                    ok
+                Ok(ok) => ok,
+                Err(err) => {
+                    todo!("implement error handling")
                 }
-                Err(err)=>{todo!("implement error handling")}
             },
         }
     }
