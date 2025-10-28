@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::state::{
     input::InputState,
-    tabs::TabState,
+    tabs::{Tab, TabState},
     term::{Mode, TermState},
 };
 
@@ -24,7 +24,7 @@ impl State {
     /// main basic input field creator
     pub fn new_input(&mut self) {
         self.term_state.mode = Mode::Insert;
-        self.term_state.input_state = Some(InputState::new())
+        self.term_state.input_state = Some(InputState::new());
     }
 
     pub fn cancel_input(&mut self) {
