@@ -1,6 +1,6 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Tab {
     pub id: i32,
     pub title: String,
@@ -21,24 +21,40 @@ impl Tab {
         self.id = id
     }
 }
+impl Default for Tab {
+    fn default() -> Self {
+        Self {
+            id: -1,
+            title: "".to_string(),
+            content: "".to_string(),
+        }
+    }
+}
 
 #[derive(Debug, Default, Clone)]
 pub struct TabState {
     pub tab_list: Vec<Tab>,
     pub idx: i32,
-    pub curr_tab: Tab,
+    pub curr_tab: Option<Tab>,
     pub tab_count: i32,
 }
 
 impl TabState {
-    pub fn del_tab(&mut self) {
+    pub fn del_tab(&mut self) -> Result<()> {
         if !self.tab_list.is_empty() {
             self.tab_list.remove(self.idx as usize);
             if self.idx as usize >= self.tab_list.len() && !self.tab_list.is_empty() {
-                self.prev_tab();
+                self.prev_tab()?;
             }
         }
+
         self.handle_idx();
+
+        if self.tab_list.is_empty() && self.idx == 0 {
+            self.curr_tab = None
+        }
+
+        Ok(())
     }
 
     fn handle_idx(&mut self) {
@@ -49,11 +65,11 @@ impl TabState {
         }
     }
 
-    pub fn new_tab<S:Into<String>>(&mut self,title:S) {
-        self.tab_list.push(Tab::new(
-            self.tab_list.len() as i32,
-            title.into()
-        ))
+    pub fn new_tab<S: Into<String>>(&mut self, title: S) -> Result<()> {
+        let tab = Tab::new(self.tab_list.len() as i32, title.into());
+        self.tab_list.push(tab.clone());
+        self.curr_tab = Some(tab);
+        Ok(())
     }
 
     pub fn next_tab(&mut self) -> Result<()> {
@@ -64,7 +80,11 @@ impl TabState {
                 .iter()
                 .find(|i| i.id == self.idx)
                 .context("Next tab not found!")?;
-            self.curr_tab = nxt.clone();
+            if let Some(tab) = &mut self.curr_tab {
+                *tab = nxt.clone();
+            } else {
+                return Err(anyhow!("No tab!"));
+            }
         }
 
         Ok(())
@@ -79,12 +99,21 @@ impl TabState {
                 .find(|i| i.id == self.idx)
                 .context("Next tab not found!")?;
 
-            self.curr_tab = prev.clone();
+            if let Some(tab) = &mut self.curr_tab {
+                *tab = prev.clone();
+            } else {
+                return Err(anyhow!("No tab!"));
+            }
         }
         Ok(())
     }
 
-    pub fn set_title<S: Into<String>>(&mut self, title: S) {
-        self.curr_tab.title = title.into()
+    pub fn set_title<S: Into<String>>(&mut self, title: S) -> Result<()> {
+        if let Some(tab) = &mut self.curr_tab {
+            tab.title = title.into()
+        } else {
+            return Err(anyhow!("No tab!"));
+        }
+        Ok(())
     }
 }

@@ -38,7 +38,7 @@ impl Term {
 
     fn draw(&mut self, frame: &mut Frame, state: &mut State) {
         frame.render_stateful_widget(self, frame.area(), state);
-        if state.term_state.mode == Mode::Insert {
+        if state.term_state.mode == Mode::Insert && state.term_state.tab_state.curr_tab.is_none() {
             let main_layout = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints(vec![Constraint::Percentage(20), Constraint::Percentage(80)])
@@ -81,12 +81,12 @@ impl Term {
             }
             (KeyCode::Char('n'), Mode::Normal) => state.term_state.tab_state.next_tab()?,
             (KeyCode::Char('p'), Mode::Normal) => state.term_state.tab_state.prev_tab()?,
-            (KeyCode::Char('d'), Mode::Normal) => state.term_state.tab_state.del_tab(),
+            (KeyCode::Char('d'), Mode::Normal) => state.term_state.tab_state.del_tab()?,
             (KeyCode::Enter, Mode::Insert) => {
                 if let Some(mut val) = state.term_state.input_state.take() {
                     let val = take(&mut val.value);
                     state.term_state.mode = Mode::Normal;
-                    state.term_state.tab_state.new_tab(val);
+                    state.term_state.tab_state.new_tab(val)?;
                 }
             }
             (KeyCode::Backspace, Mode::Insert) => {
@@ -195,30 +195,30 @@ impl StatefulWidget for &mut Term {
             }
         };
 
-        if state.term_state.tab_state.tab_list.len() == 0 && state.term_state.mode == Mode::Normal {
-            Paragraph::new(
-                "Welcome to my simple Terminal Broswer".to_string()
-                    + "\n\n"
-                    + "i -> insert mode\n"
-                    + "Esc -> Normal mode\n"
-                    + "In normal mode: \t\n"
-                    + "t -> New Tab\t\n"
-                    + "n -> next tab\t\n"
-                    + "p -> prev. tab\t\n"
-                    + "d -> delete tab\t\n",
-            )
-            .alignment(ratatui::layout::Alignment::Center)
-            .block(Block::new().borders(Borders::all()))
-            .render(area, buf);
+        if let Some(tab) = &state.term_state.tab_state.curr_tab {
+            Paragraph::new(format!(
+                "idx{},\ntitle:{} id{} ",
+                state.term_state.tab_state.idx, tab.title, tab.id
+            ))
+            .block(Block::bordered())
+            .render(page[0], buf);
+        } else {
+            if state.term_state.input_state.is_none() {
+                Paragraph::new(
+                    "Welcome to my simple Terminal Broswer".to_string()
+                        + "\n\n"
+                        + "i -> insert mode\n"
+                        + "Esc -> Normal mode\n"
+                        + "In normal mode: \t\n"
+                        + "t -> New Tab\t\n"
+                        + "n -> next tab\t\n"
+                        + "p -> prev. tab\t\n"
+                        + "d -> delete tab\t\n",
+                )
+                .alignment(ratatui::layout::Alignment::Center)
+                .block(Block::new().borders(Borders::all()))
+                .render(area, buf);
+            }
         }
-
-        let curr_tab: Tab = state.term_state.tab_state.curr_tab.clone();
-
-        Paragraph::new(format!(
-            "idx{},\ntitle:{} id{} ",
-            state.term_state.tab_state.idx, curr_tab.title, curr_tab.id
-        ))
-        .block(Block::bordered())
-        .render(page[0], buf);
     }
 }
