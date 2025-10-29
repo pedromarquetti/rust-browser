@@ -1,5 +1,8 @@
-
-use crate::state::{input::InputState, term::{Mode, TermState}, webclient_state::WebClientState};
+use crate::state::{
+    input::InputState,
+    term::{Mode, TermState},
+    webclient_state::WebClientState,
+};
 
 pub mod input;
 pub mod tab_state;
