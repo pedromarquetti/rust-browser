@@ -1,4 +1,5 @@
 use std::mem::take;
+use ratatui::prelude::*;
 
 use anyhow::{Context, Result};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
@@ -8,7 +9,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, StatefulWidget, Widget},
 };
 
-use crate::state::{Mode, State};
+use crate::state::{tab_state::Tab, term::Mode, State};
 use crate::ui::{err_term::ErrorTerm, top::Top};
 
 mod err_term;
@@ -25,8 +26,7 @@ impl Term {
     }
 
     pub fn run(&mut self, terminal: &mut DefaultTerminal, state: &mut State) -> Result<()> {
-        // while !self.exit {
-        while !state.exit {
+        while !state.term_state.exit {
             terminal
                 .draw(|frame| self.draw(frame, state))
                 .context("Failed to run terminal.draw!")?;
@@ -189,17 +189,13 @@ impl StatefulWidget for &mut Term {
             .create(top[0], buf, state)
             .context("Error while creating Top widget")
         {
-            Ok(ok) => {ok}
+            Ok(ok) => ok,
             Err(err) => {
                 ErrorTerm::new(err.to_string()).render(area, buf);
             }
         };
 
-<<<<<<< HEAD
-        if state.term_state.tab_state.tab_list.len() == 0 && state.mode == Mode::Normal {
-=======
-        if state.tab_state.tab_list.len() == 0 && state.mode == Mode::Normal {
->>>>>>> http-client
+        if state.term_state.tab_state.tab_list.len() == 0 && state.term_state.mode == Mode::Normal {
             Paragraph::new(
                 "Welcome to my simple Terminal Broswer".to_string()
                     + "\n\n"
