@@ -6,6 +6,7 @@ use ratatui::widgets::Widget;
 
 use crate::state::State;
 use crate::state::term::Mode;
+use crate::ui::err_term::ErrorTerm;
 use crate::ui::tabs::TabWidget;
 
 #[derive(Debug, Clone)]

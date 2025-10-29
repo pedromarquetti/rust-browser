@@ -195,7 +195,11 @@ impl StatefulWidget for &mut Term {
             }
         };
 
+<<<<<<< HEAD
         if state.term_state.tab_state.tab_list.len() == 0 && state.mode == Mode::Normal {
+=======
+        if state.tab_state.tab_list.len() == 0 && state.mode == Mode::Normal {
+>>>>>>> http-client
             Paragraph::new(
                 "Welcome to my simple Terminal Broswer".to_string()
                     + "\n\n"
