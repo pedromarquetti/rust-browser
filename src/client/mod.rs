@@ -6,7 +6,7 @@ use crate::{
     state::webclient_state::WebClientState,
 };
 use anyhow::{Context, Result};
-use reqwest::Client;
+use reqwest::{Client, Url};
 use serde::{Deserialize, Serialize};
 
 pub mod fetcher;

@@ -17,6 +17,16 @@ pub struct State {
 }
 
 impl State {
+    pub fn create_err<S:Into<String>>(&mut self, msg: S) {
+        self.term_state.is_err = true;
+        self.term_state.err_msg = msg.into();
+    }
+
+    pub fn remove_err(&mut self) {
+        self.term_state.is_err = false;
+        self.term_state.err_msg = String::from("");
+    }
+
     pub fn close_app(mut self) {
         self.term_state.exit = true
     }
@@ -37,7 +47,10 @@ impl State {
         self.term_state.input_state = None;
         match &self.term_state.input_state {
             Some(input) => return Some(input.value.clone()),
-            None => todo!(),
+            None => {
+                self.create_err("No string found".to_string());
+                None
+            }
         }
     }
 }

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use anyhow::Result;
 use ratatui::{
     layout::Flex,
@@ -6,13 +8,13 @@ use ratatui::{
 };
 
 #[derive(Debug, Default)]
-pub struct ErrorTerm {
-    pub msg: String,
+pub struct ErrorTerm<'a> {
+    pub msg: &'a str,
 }
 
-impl ErrorTerm {
-    pub fn new(msg: String) -> Self {
-        Self { msg: msg }
+impl<'a> ErrorTerm<'a> {
+    pub fn new(msg: &'a str) -> Self {
+        Self { msg }
     }
 
     pub fn create(&self, area: Rect, buf: &mut Buffer) -> Result<()> {
@@ -21,19 +23,17 @@ impl ErrorTerm {
     }
 }
 
-impl Widget for &ErrorTerm {
+impl<'a> Widget for &ErrorTerm<'a> {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
     where
         Self: Sized,
     {
-        // let block = Block::bordered().title("Error");
-        let block = Paragraph::new(self.msg.clone()).block(Block::bordered().title("Error"));
+        let block = Paragraph::new(self.msg).block(Block::bordered().title("Error"));
 
-        let area = popup_area(area, 60, 20);
+        let area = popup_area(area, 60, 30);
 
-        // Widget::render(Clear, area, buf);
         Widget::render(block, area, buf);
-        Paragraph::new(self.msg.clone())
+        Paragraph::new(format!("Error: {}\nPress ESC to clear error", self.msg))
             .block(Block::bordered().title("Error"))
             .render(area, buf);
     }
@@ -45,5 +45,6 @@ fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
     let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
     let [area] = vertical.areas(area);
     let [area] = horizontal.areas(area);
+    // TODO: a line is appearing when this component is cleared
     area
 }

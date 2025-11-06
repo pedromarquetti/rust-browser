@@ -1,5 +1,5 @@
-use std::mem::take;
 use ratatui::prelude::*;
+use std::mem::take;
 
 use anyhow::{Context, Result};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
@@ -9,7 +9,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, StatefulWidget, Widget},
 };
 
-use crate::state::{tab_state::Tab, term::Mode, State};
+use crate::state::{State, term::Mode};
 use crate::ui::{err_term::ErrorTerm, top::Top};
 
 mod err_term;
@@ -38,6 +38,7 @@ impl Term {
 
     fn draw(&mut self, frame: &mut Frame, state: &mut State) {
         frame.render_stateful_widget(self, frame.area(), state);
+
         if state.term_state.mode == Mode::Insert && state.term_state.tab_state.curr_tab.is_none() {
             let main_layout = Layout::default()
                 .direction(Direction::Vertical)
@@ -74,7 +75,13 @@ impl Term {
 
     pub fn handle_keypress(&mut self, e: KeyEvent, state: &mut State) -> Result<()> {
         match (e.code, state.term_state.mode.clone()) {
-            (KeyCode::Esc, _) => state.term_state.mode = Mode::Normal,
+            (KeyCode::Esc, _) => {
+                if state.term_state.is_err {
+                    state.term_state.is_err = false;
+                    state.term_state.err_msg = String::new()
+                }
+                state.term_state.mode = Mode::Normal
+            }
             (KeyCode::Char('q'), Mode::Normal) => state.term_state.exit = true,
             (KeyCode::Char('i'), Mode::Normal) | (KeyCode::Char('s'), Mode::Normal) => {
                 state.new_input();
@@ -85,8 +92,16 @@ impl Term {
             (KeyCode::Enter, Mode::Insert) => {
                 if let Some(mut val) = state.term_state.input_state.take() {
                     let val = take(&mut val.value);
-                    state.term_state.mode = Mode::Normal;
-                    state.term_state.tab_state.new_tab(val)?;
+                    if val.is_empty() || val == " " || val.split_whitespace().next().is_none() {
+                        state.create_err("No empty string allowed");
+                    } else {
+                        state.term_state.mode = Mode::Normal;
+                        state
+                            .term_state
+                            .tab_state
+                            .new_tab(val.clone())
+                            .context("Cannot create tab!")?;
+                    }
                 }
             }
             (KeyCode::Backspace, Mode::Insert) => {
@@ -174,6 +189,10 @@ impl StatefulWidget for &mut Term {
             .constraints(vec![Constraint::Percentage(20), Constraint::Percentage(80)])
             .split(area);
 
+        if state.term_state.is_err {
+            ErrorTerm::new(&state.term_state.err_msg).render(area, buf);
+        }
+
         let top = Layout::default()
             .direction(Direction::Vertical)
             .constraints(vec![Constraint::Min(10)])
@@ -191,23 +210,21 @@ impl StatefulWidget for &mut Term {
         {
             Ok(ok) => ok,
             Err(err) => {
-                ErrorTerm::new(err.to_string()).render(area, buf);
+                state.create_err(err.to_string());
             }
         };
 
         if let Some(tab) = &state.term_state.tab_state.curr_tab {
-            Paragraph::new(format!(
-                "idx{},\ntitle:{} id{} ",
-                state.term_state.tab_state.idx, tab.title, tab.id
-            ))
-            .block(Block::bordered())
-            .render(page[0], buf);
+            if !state.web_client_state.is_loading {
+                Paragraph::new(format!("{:#?}", state.web_client_state.curr_page))
+                    .block(Block::bordered())
+                    .render(page[0], buf);
+            }
         } else {
-            if state.term_state.input_state.is_none() {
+            if state.term_state.input_state.is_none() && !state.term_state.is_err {
                 Paragraph::new(
                     "Welcome to my simple Terminal Broswer".to_string()
                         + "\n\n"
-                        + "i -> insert mode\n"
                         + "Esc -> Normal mode\n"
                         + "In normal mode: \t\n"
                         + "t -> New Tab\t\n"
