@@ -1,8 +1,7 @@
-use anyhow::{Context, Result, anyhow};
+use anyhow::Result;
 use ratatui::restore;
-use scraper::{Html, Selector};
 
-use crate::{client::{fetcher::get_req, WebClient}, state::State, ui::Term};
+use crate::{state::State, ui::Term};
 
 pub mod client;
 pub mod state;
@@ -16,7 +15,7 @@ async fn main() -> Result<()> {
     };
 
     let app = Term::new().run(&mut terminal, state);
-    restore();
     app?;
+    restore();
     Ok(())
 }

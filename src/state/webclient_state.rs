@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 #[derive(Debug, Clone, Default)]
 pub struct WebClientState {
     pub curr_page: Page,
-    pub is_loading: bool,
+    pub is_loading: bool
 }
 
 impl WebClientState {

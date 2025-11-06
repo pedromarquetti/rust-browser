@@ -4,6 +4,7 @@ use crate::state::{input::InputState, tab_state::TabState};
 
 #[derive(Debug, Clone, Default)]
 pub struct TermState {
+    pub err_msg:String,
     pub is_err: bool,
     pub input_state: Option<InputState>,
     pub tab_state: TabState,
