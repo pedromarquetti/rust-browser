@@ -1,5 +1,5 @@
 use ratatui::prelude::*;
-use std::mem::take;
+use std::{mem::take, time::Duration};
 
 use anyhow::{Context, Result};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
@@ -9,8 +9,11 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, StatefulWidget, Widget},
 };
 
-use crate::state::{State, term::Mode};
 use crate::ui::{err_term::ErrorTerm, top::Top};
+use crate::{
+    state::{State, TaskType, term::Mode},
+    ui::page::Page,
+};
 
 mod err_term;
 mod page;
@@ -27,6 +30,7 @@ impl Term {
 
     pub fn run(&mut self, terminal: &mut DefaultTerminal, state: &mut State) -> Result<()> {
         while !state.term_state.exit {
+            state.process_task_results();
             terminal
                 .draw(|frame| self.draw(frame, state))
                 .context("Failed to run terminal.draw!")?;
@@ -63,12 +67,14 @@ impl Term {
 
     /// main event handler
     pub fn handle_event(&mut self, state: &mut State) -> Result<()> {
-        match event::read()? {
-            // handles only key press
-            Event::Key(event) if event.kind == KeyEventKind::Press => {
-                self.handle_keypress(event, state)?
+        if event::poll(Duration::from_nanos(100))? {
+            match event::read()? {
+                // handles only key press
+                Event::Key(event) if event.kind == KeyEventKind::Press => {
+                    self.handle_keypress(event, state)?
+                }
+                _ => {}
             }
-            _ => {}
         }
         Ok(())
     }
@@ -95,12 +101,16 @@ impl Term {
                     if val.is_empty() || val == " " || val.split_whitespace().next().is_none() {
                         state.create_err("No empty string allowed");
                     } else {
+                        // input is valid
+                        // TODO: implament direct url query
+                        let task_type = TaskType::Search(val.clone());
                         state.term_state.mode = Mode::Normal;
-                        state
+                        let tab_id = state
                             .term_state
                             .tab_state
                             .new_tab(val.clone())
                             .context("Cannot create tab!")?;
+                        state.spawn_page(task_type, tab_id)?;
                     }
                 }
             }
@@ -215,11 +225,11 @@ impl StatefulWidget for &mut Term {
         };
 
         if let Some(tab) = &state.term_state.tab_state.curr_tab {
-            if !state.web_client_state.is_loading {
-                Paragraph::new(format!("{:#?}", state.web_client_state.curr_page))
-                    .block(Block::bordered())
-                    .render(page[0], buf);
-            }
+            let mut p = Page {
+                is_loading: tab.is_loading,
+                content: tab.content.clone(),
+            };
+            p.create(page[0], buf);
         } else {
             if state.term_state.input_state.is_none() && !state.term_state.is_err {
                 Paragraph::new(

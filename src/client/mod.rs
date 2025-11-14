@@ -1,7 +1,7 @@
 use crate::{
     client::{
         fetcher::get_req,
-        parser::{ContentParser, Page},
+        parser::{ContentParser, ParsedPage},
     },
     state::webclient_state::WebClientState,
 };
@@ -16,7 +16,7 @@ pub mod parser;
 pub struct WebClient {}
 
 impl WebClient {
-    pub async fn search(query: String, state: &mut WebClientState) -> Result<Page> {
+    pub async fn search(query: String, state: &mut WebClientState) -> Result<ParsedPage> {
         let url = String::from("https://search.phlm.dev.br/?format=json&q=");
         state.is_loading = true;
         let client = Client::builder()

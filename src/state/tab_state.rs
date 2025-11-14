@@ -1,11 +1,13 @@
 use anyhow::{Context, Result, anyhow};
 
+use crate::client::parser::ParsedPage;
+
 #[derive(Debug, Clone)]
 pub struct Tab {
     pub id: i32,
     pub title: String,
-    // TODO: this is a placeholder for webpages
-    pub content: String,
+    pub content: Option<ParsedPage>,
+    pub is_loading: bool,
 }
 
 impl Tab {
@@ -13,6 +15,7 @@ impl Tab {
         Self {
             id,
             title,
+            is_loading: true,
             ..Default::default()
         }
     }
@@ -21,12 +24,14 @@ impl Tab {
         self.id = id
     }
 }
+
 impl Default for Tab {
     fn default() -> Self {
         Self {
             id: -1,
             title: "".to_string(),
-            content: "".to_string(),
+            content: None,
+            is_loading: false,
         }
     }
 }
@@ -65,10 +70,21 @@ impl TabState {
         }
     }
 
-    pub fn new_tab<S: Into<String>>(&mut self, title: S) -> Result<()> {
+    pub fn new_tab<S: Into<String>>(&mut self, title: S) -> Result<i32> {
         let tab = Tab::new(self.tab_list.len() as i32, title.into());
         self.tab_list.push(tab.clone());
-        self.curr_tab = Some(tab);
+        self.idx = tab.id;
+        self.curr_tab = Some(tab.clone());
+        Ok(tab.id)
+    }
+
+    fn sync_content(&mut self) -> Result<()> {
+        let tab = self
+            .tab_list
+            .iter()
+            .find(|i| i.id == self.idx)
+            .context("Tab not found")?;
+        self.curr_tab = Some(tab.clone());
         Ok(())
     }
 
@@ -85,6 +101,7 @@ impl TabState {
             } else {
                 return Err(anyhow!("No tab!"));
             }
+            self.sync_content()?;
         }
 
         Ok(())
@@ -104,6 +121,7 @@ impl TabState {
             } else {
                 return Err(anyhow!("No tab!"));
             }
+            self.sync_content()?;
         }
         Ok(())
     }
@@ -115,5 +133,25 @@ impl TabState {
             return Err(anyhow!("No tab!"));
         }
         Ok(())
+    }
+
+    pub fn update_tab_content(&mut self, tab_id: i32, page: ParsedPage) -> Result<()> {
+
+        if let Some(tab) = self.tab_list.iter_mut().find(|i| i.id == tab_id) {
+            tab.content = Some(page.clone());
+            tab.is_loading = false;
+
+            if self.idx == tab.id {
+                if let Some(curr_tab) = &mut self.curr_tab {
+                    curr_tab.content = Some(page);
+                    curr_tab.is_loading = false;
+                }
+            }
+
+            Ok(())
+        } else {
+            Err(anyhow!("Tab with id {} not foumd", tab_id))
+        }
+
     }
 }

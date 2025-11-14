@@ -6,7 +6,7 @@ use crate::client::{ SearxngResult};
 pub struct ContentParser {}
 
 impl ContentParser {
-    pub fn searxng(results: SearxngResult,url:String) -> Result<Page> {
+    pub fn searxng(results: SearxngResult,url:String) -> Result<ParsedPage> {
         let mut content: Vec<Parts> = vec![];
 
         results.infoboxes.iter().for_each(|i| {
@@ -23,7 +23,7 @@ impl ContentParser {
             content.push(Parts::Link(res))
         });
 
-        Ok(Page {
+        Ok(ParsedPage {
             title: results.query,
             content,
             url,
@@ -34,18 +34,18 @@ impl ContentParser {
 
 #[derive(Debug, Clone, Default)]
 pub struct Pages {
-    pub page_list: Vec<Page>,
+    pub page_list: Vec<ParsedPage>,
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Page {
+pub struct ParsedPage {
     pub tab_id: i32,
     pub title: String,
     pub url: String,
     pub content: Vec<Parts>,
 }
 
-impl Page {
+impl ParsedPage {
     pub fn set_tab(&mut self, id: i32) {
         self.tab_id = id;
     }
