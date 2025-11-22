@@ -52,6 +52,42 @@ impl Default for State {
 }
 
 impl State {
+    /// Helper func. for select next list item for ParsedPage content
+    pub fn prev_item(&mut self) -> Result<()> {
+        if let Some(tab) = &mut self.term_state.tab_state.curr_tab {
+            if let Some(curr_tab) = &mut tab.content {
+                curr_tab.state.select_previous();
+            } else {
+                return Err(anyhow!("no content for prev item"));
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Helper func. for select next list item for ParsedPage content
+    pub fn next_item(&mut self) -> Result<()> {
+        if let Some(tab) = &mut self.term_state.tab_state.curr_tab {
+            if let Some(curr_tab) = &mut tab.content {
+                curr_tab.state.select_next();
+            } else {
+                return Err(anyhow!("no content for next item"));
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn scroll_down(&mut self) {
+        self.term_state.scroll_idx = self.term_state.scroll_idx + 1;
+    }
+
+    pub fn scroll_up(&mut self) {
+        if self.term_state.scroll_idx != 0 {
+            self.term_state.scroll_idx = self.term_state.scroll_idx - 1;
+        }
+    }
+
     pub fn create_err<S: Into<String>>(&mut self, msg: S) {
         self.term_state.is_err = true;
         self.term_state.err_msg = msg.into();
@@ -114,7 +150,7 @@ impl State {
         tokio::spawn(async move {
             let mut web_state = WebClientState::default();
             let res = match task_type {
-                TaskType::Search(query) => match web_state.search(query,tab_id).await {
+                TaskType::Search(query) => match web_state.search(query, tab_id).await {
                     Ok(()) => TaskResult::Loaded {
                         tab_id: tab_id,
                         page: web_state.curr_page,

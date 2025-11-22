@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod fetcher;
 pub mod parser;
+pub mod page_part;
 
 #[derive(Debug)]
 pub struct WebClient {}

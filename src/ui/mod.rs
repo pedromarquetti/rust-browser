@@ -46,20 +46,21 @@ impl Term {
         if state.term_state.mode == Mode::Insert && state.term_state.tab_state.curr_tab.is_none() {
             let main_layout = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints(vec![Constraint::Percentage(20), Constraint::Percentage(80)])
+                // .constraints(vec![Constraint::Percentage(20), Constraint::Percentage(80)])
+                .constraints(vec![Constraint::Length(1), Constraint::Min(0)])
                 .split(frame.area());
 
             let top = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints(vec![Constraint::Min(10)])
+                .constraints(vec![Constraint::Min(1)])
                 .split(main_layout[0]);
 
             if let Some(input) = state.term_state.input_state.as_ref() {
                 let prefix = " ";
                 let prefix_len = prefix.len() as u16;
                 let cursor_cols = input.value[..input.cursor].chars().count() as u16;
-                let x = top[0].x + 1 + prefix_len + cursor_cols; // +1 to be inside the bordered block
-                let y = top[0].y + 1;
+                let x = top[0].x + prefix_len + cursor_cols; // +1 to be inside the bordered block
+                let y = top[0].y;
                 frame.set_cursor_position(Position::new(x, y));
             }
         }
@@ -89,6 +90,14 @@ impl Term {
                 state.term_state.mode = Mode::Normal
             }
             (KeyCode::Char('q'), Mode::Normal) => state.term_state.exit = true,
+            (KeyCode::Char('x'), Mode::Normal) => state.scroll_down(),
+            (KeyCode::Char('w'), Mode::Normal) => state.scroll_up(),
+            (KeyCode::Char('k'), Mode::Normal) => {
+                state.prev_item()?;
+            }
+            (KeyCode::Char('j'), Mode::Normal) => {
+                state.next_item()?;
+            }
             (KeyCode::Char('i'), Mode::Normal) | (KeyCode::Char('s'), Mode::Normal) => {
                 state.new_input();
             }
@@ -196,7 +205,7 @@ impl StatefulWidget for &mut Term {
     ) {
         let main_layout = Layout::default()
             .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Percentage(20), Constraint::Percentage(80)])
+            .constraints(vec![Constraint::Length(1), Constraint::Min(0)])
             .split(area);
 
         if state.term_state.is_err {
@@ -205,7 +214,7 @@ impl StatefulWidget for &mut Term {
 
         let top = Layout::default()
             .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Min(10)])
+            .constraints(vec![Constraint::Min(0)])
             .split(main_layout[0]);
 
         // main content
@@ -227,9 +236,9 @@ impl StatefulWidget for &mut Term {
         if let Some(tab) = &state.term_state.tab_state.curr_tab {
             let mut p = Page {
                 is_loading: tab.is_loading,
-                content: tab.content.clone(),
+                ..Default::default()
             };
-            p.create(page[0], buf);
+            p.create(page[0], buf, state);
         } else {
             if state.term_state.input_state.is_none() && !state.term_state.is_err {
                 Paragraph::new(

@@ -36,7 +36,6 @@ impl StatefulWidget for &mut Top {
                     .map(|i| i.value.as_str())
                     .unwrap_or("");
                 Paragraph::new(format!(":{}", val))
-                    .block(Block::bordered())
                     .render(area, buf);
             }
             Mode::Normal => match TabWidget::new().create(area, buf, state) {

@@ -10,7 +10,7 @@ pub struct TermState {
     pub tab_state: TabState,
     pub mode: Mode,
     pub exit: bool,
-    pub curr_key: String,
+    pub scroll_idx: i32,
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]

@@ -136,7 +136,6 @@ impl TabState {
     }
 
     pub fn update_tab_content(&mut self, tab_id: i32, page: ParsedPage) -> Result<()> {
-
         if let Some(tab) = self.tab_list.iter_mut().find(|i| i.id == tab_id) {
             tab.content = Some(page.clone());
             tab.is_loading = false;
@@ -152,6 +151,6 @@ impl TabState {
         } else {
             Err(anyhow!("Tab with id {} not foumd", tab_id))
         }
-
     }
+
 }

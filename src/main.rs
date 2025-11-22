@@ -17,5 +17,6 @@ async fn main() -> Result<()> {
     let app = Term::new().run(&mut terminal, state);
     app?;
     restore();
+
     Ok(())
 }
