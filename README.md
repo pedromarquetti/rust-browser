@@ -1,1 +1,2 @@
 # Simple Rust Terminal Browser!
+

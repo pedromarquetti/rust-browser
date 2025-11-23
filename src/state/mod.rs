@@ -160,7 +160,7 @@ impl State {
                         error: e.to_string(),
                     },
                 },
-                TaskType::Url(url) => {
+                TaskType::Url(_) => {
                     todo!("TODO: implement direct url handling")
                 }
             };

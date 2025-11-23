@@ -1,10 +1,9 @@
-use std::default;
+use std::vec;
 
 use ratatui::{
-    layout::Alignment,
-    style::{Style, Stylize},
+    style::Stylize,
     text::{Line, Span, Text},
-    widgets::{ListItem, Paragraph},
+    widgets::ListItem,
 };
 
 use crate::client::parser::Link;
@@ -36,15 +35,6 @@ impl Default for Part {
         }
     }
 }
-
-// let line = Line::from("Hello, world!");
-// let line = Line::from(String::from("Hello, world!"));
-//
-// let line = Line::from(vec![
-//     Span::styled("Hello", Style::new().blue()),
-//     Span::raw(" world!"),
-// ]);
-// ```
 
 impl From<&Part> for ListItem<'_> {
     fn from(value: &Part) -> Self {
@@ -126,7 +116,83 @@ impl Part {
             text: Some(link.text.clone()),
             link: Some(link.clone()),
             title: Some(link.title),
-            ..Default::default()
+            state: PartState::Link,
         }
     }
+
+    /// method for creating wrapped text and making it a ListItem
+    pub fn to_list_item(&self, width: u16) -> ListItem<'static> {
+        let width = width.saturating_sub(4) as usize;
+
+        match self.state {
+            PartState::Text => {
+                let mut lines = vec![];
+
+                if let Some(title) = &self.title {
+                    lines.push(Line::from(Span::raw(title.clone()).bold()));
+                }
+
+                if let Some(text) = &self.text {
+                     parse_text(&mut lines, text.to_string(), width);
+                }
+
+                ListItem::new(Text::from(lines))
+            }
+
+            PartState::Link => {
+                let link = self.link.clone().unwrap_or_default();
+                let mut lines = vec![];
+
+                // handle link objects
+                if let Some(title) = &self.title {
+                    lines.push(Line::from(Span::raw(title.clone()).bold()));
+                }
+
+                if let Some(text) = &self.text {
+                     parse_text(&mut lines, text.to_string(), width);
+                }
+
+                if !link.url.is_empty() {
+                    lines.push(Line::from(
+                        Span::raw(format!("-> {}", link.url)).italic().cyan(),
+                    ));
+                }
+
+                lines.push(Line::from(""));
+                ListItem::new(Text::from(lines))
+            }
+        }
+    }
+}
+
+fn parse_text<'l>(lines: &mut Vec<Line<'l>>, text: String, width: usize) {
+    if !text.is_empty() {
+        for line in text.lines() {
+            if line.len() <= width {
+                lines.push(Line::from(line.to_string()));
+            } else {
+                let words: Vec<&str> = line.split_whitespace().collect();
+                let mut curr_line = String::new();
+
+                for word in words {
+                    if curr_line.len() + word.len() + 1 <= width {
+                        if !curr_line.is_empty() {
+                            curr_line.push(' ');
+                        }
+                        curr_line.push_str(word);
+                    } else {
+                        if !curr_line.is_empty() {
+                            lines.push(Line::from(curr_line.clone()));
+                        }
+                        curr_line = word.to_string();
+                    }
+                }
+                if !curr_line.is_empty() {
+                    lines.push(Line::from(curr_line));
+                }
+            }
+        }
+    }
+
+    lines.push(Line::from(""));
 }

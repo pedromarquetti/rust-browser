@@ -6,12 +6,12 @@ use crate::{
     state::webclient_state::WebClientState,
 };
 use anyhow::{Context, Result};
-use reqwest::{Client, Url};
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
 pub mod fetcher;
-pub mod parser;
 pub mod page_part;
+pub mod parser;
 
 #[derive(Debug)]
 pub struct WebClient {}
@@ -32,7 +32,7 @@ impl WebClient {
         .json::<SearxngResult>()
         .await
         .context("Error decoding JSON")?;
-        ContentParser::searxng(req, url+&query)
+        ContentParser::searxng(req, url + &query)
     }
 }
 

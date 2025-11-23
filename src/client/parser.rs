@@ -1,5 +1,5 @@
 use anyhow::Result;
-use ratatui::widgets::{ListItem, ListState};
+use ratatui::widgets::ListState;
 
 use crate::client::SearxngResult;
 use crate::client::page_part::{Part, PartState};
@@ -25,7 +25,11 @@ impl ContentParser {
             content.push(Part::link(res))
         });
 
-        let state = ListState::default();
+        let mut state = ListState::default();
+
+        if !content.is_empty() {
+            state.select(Some(0));
+        }
 
         Ok(ParsedPage {
             title: results.query,

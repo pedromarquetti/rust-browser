@@ -7,7 +7,7 @@ pub mod client;
 pub mod state;
 pub mod ui;
 
-#[tokio::main]
+#[tokio::main] 
 async fn main() -> Result<()> {
     let mut terminal = ratatui::init();
     let state = &mut State {

@@ -1,10 +1,6 @@
-use anyhow::Result;
 use ratatui::prelude::*;
-use ratatui::widgets::{
-    Block, BorderType, Borders, List, ListItem, Padding, Paragraph, Widget, Wrap,
-};
+use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Widget};
 
-use crate::client::page_part::Part;
 use crate::client::parser::ParsedPage;
 use crate::state::State;
 
@@ -22,8 +18,13 @@ impl Page {
 
 impl StatefulWidget for &mut Page {
     type State = State;
+
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         if !self.is_loading {
+            let block = Block::default().borders(Borders::all()).title("Page");
+            let inner = block.inner(area);
+            let available_width = inner.width;
+
             let items: Vec<ListItem> = state
                 .term_state
                 .tab_state
@@ -36,13 +37,11 @@ impl StatefulWidget for &mut Page {
                 .parsed_content
                 .iter()
                 .enumerate()
-                .map(|(i, part)| {
+                .map(|(_, part)| {
                     //creating List
-                    ListItem::from(part)
+                    part.to_list_item(available_width)
                 })
                 .collect();
-
-            let block = Block::default().borders(Borders::all()).title("Page");
 
             let list = List::new(items.clone()).block(block).highlight_symbol(">");
 
@@ -53,11 +52,6 @@ impl StatefulWidget for &mut Page {
                     StatefulWidget::render(list, list_area, buf, &mut content.state);
                 }
             }
-
-            // Paragraph::new(format!("{:#?}\n {:#?}\n{:#?}", items, list, self.page))
-            // .wrap(Wrap { trim: true })
-            // .scroll((state.term_state.scroll_idx as u16, 0))
-            // .render(area, buf);
         } else {
             Paragraph::new("Loading...")
                 .centered()
