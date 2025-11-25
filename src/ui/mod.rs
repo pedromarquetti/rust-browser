@@ -34,8 +34,15 @@ impl Term {
             terminal
                 .draw(|frame| self.draw(frame, state))
                 .context("Failed to run terminal.draw!")?;
-            self.handle_event(state)
-                .context("Failed to handle event!")?;
+
+            match self.handle_event(state) {
+                Ok(_) => {}
+                Err(e) => {
+                    // dont't crash if an error was returned after pressing the
+                    // wrong key
+                    state.create_err(e.to_string());
+                }
+            }
         }
         Ok(())
     }
@@ -46,7 +53,6 @@ impl Term {
         if state.term_state.mode == Mode::Insert && state.term_state.tab_state.curr_tab.is_none() {
             let main_layout = Layout::default()
                 .direction(Direction::Vertical)
-                // .constraints(vec![Constraint::Percentage(20), Constraint::Percentage(80)])
                 .constraints(vec![Constraint::Length(1), Constraint::Min(0)])
                 .split(frame.area());
 
@@ -105,13 +111,14 @@ impl Term {
             (KeyCode::Char('p'), Mode::Normal) => state.term_state.tab_state.prev_tab()?,
             (KeyCode::Char('d'), Mode::Normal) => state.term_state.tab_state.del_tab()?,
             (KeyCode::Enter, Mode::Insert) => {
+                // TODO: maybe make a cache file with search history?
                 if let Some(mut val) = state.term_state.input_state.take() {
                     let val = take(&mut val.value);
                     if val.is_empty() || val == " " || val.split_whitespace().next().is_none() {
                         state.create_err("No empty string allowed");
                     } else {
                         // input is valid
-                        // TODO: implament direct url query
+                        // TODO: implement direct url query
                         let task_type = TaskType::Search(val.clone());
                         state.term_state.mode = Mode::Normal;
                         let tab_id = state
@@ -209,7 +216,8 @@ impl StatefulWidget for &mut Term {
             .split(area);
 
         if state.term_state.is_err {
-            ErrorTerm::new(&state.term_state.err_msg).render(area, buf);
+            ErrorTerm::new(&state.term_state.err_msg, state.term_state.scroll_idx)
+                .render(area, buf);
         }
 
         let top = Layout::default()

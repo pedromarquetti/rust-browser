@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::{
     client::{
         fetcher::get_req,
@@ -5,8 +7,9 @@ use crate::{
     },
     state::webclient_state::WebClientState,
 };
-use anyhow::{Context, Result};
-use reqwest::Client;
+
+use anyhow::{Context, Result, anyhow};
+use reqwest::{Client, Url};
 use serde::{Deserialize, Serialize};
 
 pub mod fetcher;
@@ -17,22 +20,48 @@ pub mod parser;
 pub struct WebClient {}
 
 impl WebClient {
-    pub async fn search(query: String, state: &mut WebClientState) -> Result<ParsedPage> {
-        let url = String::from("https://search.phlm.dev.br/?format=json&q=");
+    /// SearXNG request helper func
+    pub async fn search_xng(query: String, state: &mut WebClientState) -> Result<ParsedPage> {
+        if state.search_provider.url.is_empty() {
+            return Err(anyhow!("SearXNG URL not set!"));
+        }
+
+        let mut url = Url::from_str(state.search_provider.url.as_str()).context(format!(
+            "Could not parse as URL: {}",
+            state.search_provider.url
+        ))?;
+
+        url.set_path("/search");
+        url.query_pairs_mut()
+            .clear()
+            .append_pair("q", &query)
+            .append_pair("format", "json");
+
         state.is_loading = true;
+
         let client = Client::builder()
             .build()
             .context("Failed creating Client")?;
-        let req = get_req(
-            client,
-            // TODO: make this url configurable
-            url.clone() + &query,
-        )
-        .await?
-        .json::<SearxngResult>()
-        .await
-        .context("Error decoding JSON")?;
-        ContentParser::searxng(req, url + &query)
+
+        let req = get_req(client, url.clone()).await?;
+
+        let status = req.status();
+
+        if !status.is_success() {
+            // handler for any error codes that might occur
+            return Err(anyhow!(
+                "URL Returned Error! {}\n {}",
+                status,
+                req.text().await?
+            ));
+        };
+
+        let req = req
+            .json::<SearxngResult>()
+            .await
+            .context(format!("Error decoding JSON for url {:#?}", url))?;
+
+        ContentParser::searxng(req, url.to_string())
     }
 }
 
@@ -63,3 +92,4 @@ struct QueryResults {
     title: String,
     content: String,
 }
+

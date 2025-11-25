@@ -1,23 +1,59 @@
-use crate::client::{WebClient, parser::ParsedPage};
-use anyhow::{Context, Result};
+use std::str::FromStr;
+
+use crate::{
+    client::{WebClient, parser::ParsedPage},
+    config::webclient_config::AvailableSearchEngines,
+};
+use anyhow::{Context, Result, anyhow};
+use reqwest::Url;
 
 #[derive(Debug, Clone, Default)]
 pub struct WebClientState {
+    pub search_provider: SearchProvider,
     pub curr_page: ParsedPage,
     pub is_loading: bool,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct SearchProvider {
+    pub url: String,
+    pub name: AvailableSearchEngines,
+}
+
+impl SearchProvider {
+    pub fn set_url<S: ToString>(&mut self, url: S) -> Self {
+        Self {
+            url: url.to_string(),
+            name: self.name,
+        }
+    }
 }
 
 impl WebClientState {
     /// shared state to search the web
     pub async fn search(&mut self, query: String, tab_id: i32) -> Result<()> {
-        let page = WebClient::search(query, self)
-            .await
-            .context("WebClientState failed to search")?;
-        self.is_loading = false;
-        self.curr_page = page;
-        self.curr_page.tab_id = tab_id;
+
+        if self.search_provider.url.is_empty() || query.is_empty() {
+            return Err(anyhow!(format!(
+                "Search Provider URL OR query is empty!\nurl {}\n query {}",
+                self.search_provider.url, query
+            )));
+        }
+
+        match self.search_provider.name {
+            AvailableSearchEngines::SearXNG => {
+                let page = WebClient::search_xng(query.clone(), self)
+                    .await
+                    .context(format!(
+                        "WebClientState failed to search: \n{}\n{}",
+                        self.search_provider.url, query
+                    ))?;
+                self.is_loading = false;
+                self.curr_page = page;
+                self.curr_page.tab_id = tab_id;
+            }
+        }
+
         Ok(())
     }
-
-
 }

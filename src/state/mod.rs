@@ -3,12 +3,11 @@ use reqwest::Url;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::{
-    client::parser::ParsedPage,
-    state::{
+    client::parser::ParsedPage, config::Configs, state::{
         input::InputState,
         term::{Mode, TermState},
-        webclient_state::WebClientState,
-    },
+        webclient_state::{SearchProvider, WebClientState},
+    }
 };
 
 pub mod input;
@@ -52,6 +51,15 @@ impl Default for State {
 }
 
 impl State {
+
+    /// main function for updating / loading configs
+    pub fn load_configs(&mut self,configs: Configs)  {
+        self.web_client_state.search_provider = SearchProvider{
+            name: configs.webclient_config.provider,
+            url: configs.webclient_config.search_url
+        }
+    }
+
     /// Helper func. for select next list item for ParsedPage content
     pub fn prev_item(&mut self) -> Result<()> {
         if let Some(tab) = &mut self.term_state.tab_state.curr_tab {
@@ -147,8 +155,9 @@ impl State {
 
     pub fn spawn_page(&mut self, task_type: TaskType, tab_id: i32) -> Result<()> {
         let tx = self.task_tx.clone();
+        let web_state = self.web_client_state.clone();
         tokio::spawn(async move {
-            let mut web_state = WebClientState::default();
+            let mut web_state = web_state.clone();
             let res = match task_type {
                 TaskType::Search(query) => match web_state.search(query, tab_id).await {
                     Ok(()) => TaskResult::Loaded {
