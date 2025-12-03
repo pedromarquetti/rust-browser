@@ -1,6 +1,6 @@
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Ok, Result, anyhow};
 
-use crate::client::parser::ParsedPage;
+use crate::client::{page_part::Part, parser::ParsedPage};
 
 #[derive(Debug, Clone)]
 pub struct Tab {
@@ -45,6 +45,19 @@ pub struct TabState {
 }
 
 impl TabState {
+    pub fn get_selected_item(&self) -> Result<Part> {
+        if let Some(tab) = &self.curr_tab {
+            if let Some(page) = &tab.content {
+                let idx = page.state.selected().unwrap_or(0);
+                return Ok(page.parsed_content[idx].clone());
+            } else {
+                return Err(anyhow!("No page!"));
+            }
+        } else {
+            return Err(anyhow!("No tab!"));
+        }
+    }
+
     pub fn del_tab(&mut self) -> Result<()> {
         if !self.tab_list.is_empty() {
             self.tab_list.remove(self.idx as usize);
@@ -152,5 +165,4 @@ impl TabState {
             Err(anyhow!("Tab with id {} not foumd", tab_id))
         }
     }
-
 }

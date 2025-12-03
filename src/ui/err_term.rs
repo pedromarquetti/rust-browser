@@ -2,7 +2,7 @@ use anyhow::Result;
 use ratatui::{
     layout::Flex,
     prelude::*,
-    widgets::{Block, Paragraph, Wrap},
+    widgets::{Block, Clear, Paragraph, Wrap},
 };
 
 #[derive(Debug, Default)]
@@ -56,6 +56,8 @@ impl<'a> Widget for &ErrorTerm<'a> {
 
         let popup_area = popup_area(area, width, height);
 
+        Clear.render(popup_area, buf);
+
         let mut msg = self.msg.to_string();
         msg.push_str("\n\nPress Esc to exit!");
 
@@ -65,7 +67,7 @@ impl<'a> Widget for &ErrorTerm<'a> {
             .block(
                 Block::bordered()
                     .title("Error")
-                    .border_style(Style::default().fg(Color::Red)),
+                    .border_style(Style::default().fg(Color::Red).bg(Color::Black)),
             );
 
         Widget::render(paragraph, popup_area, buf);

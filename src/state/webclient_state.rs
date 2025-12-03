@@ -1,11 +1,8 @@
-use std::str::FromStr;
-
 use crate::{
     client::{WebClient, parser::ParsedPage},
     config::webclient_config::AvailableSearchEngines,
 };
 use anyhow::{Context, Result, anyhow};
-use reqwest::Url;
 
 #[derive(Debug, Clone, Default)]
 pub struct WebClientState {
@@ -32,7 +29,6 @@ impl SearchProvider {
 impl WebClientState {
     /// shared state to search the web
     pub async fn search(&mut self, query: String, tab_id: i32) -> Result<()> {
-
         if self.search_provider.url.is_empty() || query.is_empty() {
             return Err(anyhow!(format!(
                 "Search Provider URL OR query is empty!\nurl {}\n query {}",

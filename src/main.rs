@@ -1,8 +1,8 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use ratatui::restore;
 
 use crate::{
-    config::{Configs, webclient_config::AvailableSearchEngines},
+    config::Configs,
     state::State,
     ui::Term,
 };

@@ -110,6 +110,15 @@ impl Term {
             (KeyCode::Char('n'), Mode::Normal) => state.term_state.tab_state.next_tab()?,
             (KeyCode::Char('p'), Mode::Normal) => state.term_state.tab_state.prev_tab()?,
             (KeyCode::Char('d'), Mode::Normal) => state.term_state.tab_state.del_tab()?,
+            (KeyCode::Enter, Mode::Normal) => {
+                let curr_item = state.term_state.tab_state.get_selected_item()?;
+
+                if curr_item.link.is_some() {
+                    // TODO: make this open the link in a new tab
+                    // currently this will open in the current browser
+                    open::that_detached(curr_item.link.unwrap_or_default().url)?;
+                }
+            }
             (KeyCode::Enter, Mode::Insert) => {
                 // TODO: maybe make a cache file with search history?
                 if let Some(mut val) = state.term_state.input_state.take() {
@@ -215,11 +224,6 @@ impl StatefulWidget for &mut Term {
             .constraints(vec![Constraint::Length(1), Constraint::Min(0)])
             .split(area);
 
-        if state.term_state.is_err {
-            ErrorTerm::new(&state.term_state.err_msg, state.term_state.scroll_idx)
-                .render(area, buf);
-        }
-
         let top = Layout::default()
             .direction(Direction::Vertical)
             .constraints(vec![Constraint::Min(0)])
@@ -263,6 +267,11 @@ impl StatefulWidget for &mut Term {
                 .block(Block::new().borders(Borders::all()))
                 .render(area, buf);
             }
+        }
+
+        if state.term_state.is_err {
+            ErrorTerm::new(&state.term_state.err_msg, state.term_state.scroll_idx)
+                .render(area, buf);
         }
     }
 }

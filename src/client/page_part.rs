@@ -13,9 +13,9 @@ use crate::client::parser::Link;
 /// Link Block, Text Block...
 pub struct Part {
     state: PartState,
-    title: Option<String>,
-    text: Option<String>,
-    link: Option<Link>,
+    pub title: Option<String>,
+    pub text: Option<String>,
+    pub link: Option<Link>,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -133,7 +133,7 @@ impl Part {
                 }
 
                 if let Some(text) = &self.text {
-                     parse_text(&mut lines, text.to_string(), width);
+                    parse_text(&mut lines, text.to_string(), width);
                 }
 
                 ListItem::new(Text::from(lines))
@@ -149,7 +149,7 @@ impl Part {
                 }
 
                 if let Some(text) = &self.text {
-                     parse_text(&mut lines, text.to_string(), width);
+                    parse_text(&mut lines, text.to_string(), width);
                 }
 
                 if !link.url.is_empty() {

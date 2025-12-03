@@ -38,7 +38,7 @@ impl StatefulWidget for &mut Page {
                 .iter()
                 .enumerate()
                 .map(|(_, part)| {
-                    //creating List
+                    // creating List
                     part.to_list_item(available_width)
                 })
                 .collect();
