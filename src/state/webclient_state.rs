@@ -3,6 +3,7 @@ use crate::{
     config::webclient_config::AvailableSearchEngines,
 };
 use anyhow::{Context, Result, anyhow};
+use reqwest::Url;
 
 #[derive(Debug, Clone, Default)]
 pub struct WebClientState {
@@ -27,6 +28,10 @@ impl SearchProvider {
 }
 
 impl WebClientState {
+    pub async fn fetch_url(&mut self, url: Url) -> Result<()> {
+        todo!();
+    }
+
     /// shared state to search the web
     pub async fn search(&mut self, query: String, tab_id: i32) -> Result<()> {
         if self.search_provider.url.is_empty() || query.is_empty() {
