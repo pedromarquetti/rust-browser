@@ -3,11 +3,13 @@ use reqwest::Url;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::{
-    client::parser::ParsedPage, config::Configs, state::{
+    client::parser::ParsedPage,
+    config::Configs,
+    state::{
         input::InputState,
         term::{Mode, TermState},
         webclient_state::{SearchProvider, WebClientState},
-    }
+    },
 };
 
 pub mod input;
@@ -51,12 +53,11 @@ impl Default for State {
 }
 
 impl State {
-
     /// main function for updating / loading configs
-    pub fn load_configs(&mut self,configs: Configs)  {
-        self.web_client_state.search_provider = SearchProvider{
+    pub fn load_configs(&mut self, configs: Configs) {
+        self.web_client_state.search_provider = SearchProvider {
             name: configs.webclient_config.provider,
-            url: configs.webclient_config.search_url
+            url: configs.webclient_config.search_url,
         }
     }
 
@@ -169,9 +170,16 @@ impl State {
                         error: e.to_string(),
                     },
                 },
-                TaskType::Url(_) => {
-                    todo!("TODO: implement direct url handling")
-                }
+                TaskType::Url(url) => match web_state.fetch_url(url).await {
+                    Ok(()) => TaskResult::Loaded {
+                        tab_id: tab_id,
+                        page: web_state.curr_page,
+                    },
+                    Err(e) => TaskResult::LoadError {
+                        tab_id: tab_id,
+                        error: e.to_string(),
+                    },
+                },
             };
             match tx.send(res) {
                 Ok(_) => return Ok(()),
