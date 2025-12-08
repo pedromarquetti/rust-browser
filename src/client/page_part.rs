@@ -165,6 +165,7 @@ impl Part {
     }
 }
 
+/// Helper function for handling text rendering
 fn parse_text<'l>(lines: &mut Vec<Line<'l>>, text: String, width: usize) {
     if !text.is_empty() {
         for line in text.lines() {

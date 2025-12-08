@@ -1,49 +1,12 @@
 use anyhow::Result;
 use ratatui::widgets::ListState;
+use reqwest::Url;
 
-use crate::client::SearxngResult;
 use crate::client::page_part::{Part, PartState};
 
-#[derive(Debug)]
-pub struct ContentParser {}
-
-impl ContentParser {
-    pub fn searxng(results: SearxngResult, url: String) -> Result<ParsedPage> {
-        let mut content: Vec<Part> = vec![];
-
-        results.infoboxes.iter().for_each(|i| {
-            content.push(Part::text(i.infobox.clone()));
-            content.push(Part::text(i.content.clone()));
-        });
-
-        results.results.iter().for_each(|i| {
-            let res = Link {
-                title: i.title.clone(),
-                url: i.url.clone(),
-                text: i.content.clone(),
-            };
-            content.push(Part::link(res))
-        });
-
-        let mut state = ListState::default();
-
-        if !content.is_empty() {
-            state.select(Some(0));
-        }
-
-        Ok(ParsedPage {
-            title: results.query,
-            parsed_content: content,
-            url,
-            state,
-            ..Default::default()
-        })
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct Pages {
-    pub page_list: Vec<ParsedPage>,
+/// Trait to represent a valid parsed webpage
+pub trait ParserTrait {
+    fn to_parsed_page(&self, url: Url) -> Result<ParsedPage>;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -72,16 +35,6 @@ impl FromIterator<(PartState, String, Link)> for ParsedPage {
             state,
             ..Default::default()
         }
-    }
-}
-
-impl ParsedPage {
-    pub fn set_tab(&mut self, id: i32) {
-        self.tab_id = id;
-    }
-
-    pub fn set_url(&mut self, url: String) {
-        self.url = url;
     }
 }
 

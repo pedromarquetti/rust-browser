@@ -3,21 +3,22 @@ use std::str::FromStr;
 use crate::{
     client::{
         fetcher::get_req,
-        parser::{ContentParser, ParsedPage},
+        parser::{ParsedPage, ParserTrait},
+        searxng::SearxngResult,
     },
     state::webclient_state::WebClientState,
 };
 
 use anyhow::{Context, Result, anyhow};
 use reqwest::{Client, Url};
-use serde::{Deserialize, Serialize};
 
 pub mod fetcher;
 pub mod page_part;
 pub mod parser;
+pub mod searxng;
 
 #[derive(Debug)]
-pub struct WebClient {}
+pub struct WebClient;
 
 impl WebClient {
     /// SearXNG request helper func
@@ -61,35 +62,6 @@ impl WebClient {
             .await
             .context(format!("Error decoding JSON for url {:#?}", url))?;
 
-        ContentParser::searxng(req, url.to_string())
+        req.to_parsed_page(url)
     }
 }
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct SearxngResult {
-    query: String,
-    results: Vec<QueryResults>,
-    answers: Vec<SearxAnswer>,
-    infoboxes: Vec<SearxInfo>,
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-struct SearxInfo {
-    infobox: String,
-    id: String,
-    content: String,
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-struct SearxAnswer {
-    url: Option<String>,
-    answer: Option<String>,
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-struct QueryResults {
-    url: String,
-    title: String,
-    content: String,
-}
-
