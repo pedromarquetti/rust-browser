@@ -1,18 +1,37 @@
-use ratatui::widgets::ListState;
-use reqwest::Url;
-use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
-use crate::client::{
-    page_part::Part,
-    parser::{Link, ParsedPage, ParserTrait},
+use crate::{
+    client::{
+        fetcher::get_req,
+        parser::{ParsedPage, ParserTrait},
+    },
+    state::webclient_state::WebClientState,
 };
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+use anyhow::{Context, Result, anyhow, bail};
+use ratatui::widgets::StatefulWidget;
+use reqwest::{Client, Url};
+
+use ratatui::widgets::ListState;
+use serde::{Deserialize, Serialize};
+
+use crate::client::{WebClientTrait, page_part::Part, parser::Link};
+
+#[derive(Debug, PartialEq, Clone, Default, Serialize, Deserialize)]
+/// Main struct for handling SearXNG search engine
 pub struct SearxngResult {
     pub query: String,
     pub results: Vec<QueryResults>,
     pub answers: Vec<SearxAnswer>,
     pub infoboxes: Vec<SearxInfo>,
+}
+
+impl SearxngResult {
+    pub fn new() -> Self {
+        Self {
+            ..Default::default()
+        }
+    }
 }
 
 impl ParserTrait for SearxngResult {
@@ -46,6 +65,63 @@ impl ParserTrait for SearxngResult {
             state,
             ..Default::default()
         })
+    }
+}
+
+impl WebClientTrait for SearxngResult {
+    async fn search(
+        &self,
+        query: String,
+        state: &mut crate::state::webclient_state::WebClientState,
+    ) -> anyhow::Result<ParsedPage> {
+        if state.search_provider.url.is_empty() {
+            return Err(anyhow!("SearXNG URL not set!"));
+        }
+
+        let mut url = Url::from_str(state.search_provider.url.as_str()).context(format!(
+            "Could not parse as URL: {}",
+            state.search_provider.url
+        ))?;
+
+        url.set_path("/search");
+        url.query_pairs_mut()
+            .clear()
+            .append_pair("q", &query)
+            .append_pair("format", "json");
+
+        state.is_loading = true;
+
+        let client = Client::builder()
+            .build()
+            .context("Failed creating Client")?;
+
+        let req = get_req(client, url.clone()).await?;
+
+        let status = req.status();
+
+        if !status.is_success() {
+            // handler for any error codes that might occur
+            return Err(anyhow!(
+                "URL Returned Error! {}\n {}",
+                status,
+                req.text().await?
+            ));
+        };
+
+        let req = req
+            .json::<SearxngResult>()
+            .await
+            .context(format!("Error decoding JSON for url {:#?}", url))?;
+
+        req.to_parsed_page(url)
+    }
+
+    async fn fetch_url(
+        &self,
+        _url: Url,
+        _state: &mut WebClientState,
+    ) -> anyhow::Result<ParsedPage> {
+        bail!("This provider does not implement direct url!")
     }
 }
 

@@ -25,7 +25,9 @@ pub enum TaskResult {
 
 #[derive(Debug, Clone)]
 pub enum TaskType {
+    /// search using defined search engine
     Search(String),
+    /// go to direct URL
     Url(Url),
 }
 
@@ -64,6 +66,11 @@ impl State {
     /// Helper func. for select next list item for ParsedPage content
     pub fn prev_item(&mut self) -> Result<()> {
         if let Some(tab) = &mut self.term_state.tab_state.curr_tab {
+            // early return if page did not finish loading
+            if tab.is_loading {
+                return Ok(());
+            }
+
             if let Some(curr_tab) = &mut tab.content {
                 curr_tab.state.select_previous();
             } else {
@@ -77,6 +84,11 @@ impl State {
     /// Helper func. for select next list item for ParsedPage content
     pub fn next_item(&mut self) -> Result<()> {
         if let Some(tab) = &mut self.term_state.tab_state.curr_tab {
+            // early return if page did not finish loading
+            if tab.is_loading {
+                return Ok(());
+            }
+
             if let Some(curr_tab) = &mut tab.content {
                 curr_tab.state.select_next();
             } else {

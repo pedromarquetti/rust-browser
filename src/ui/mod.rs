@@ -1,5 +1,6 @@
 use ratatui::prelude::*;
-use std::{mem::take, time::Duration};
+use reqwest::Url;
+use std::{mem::take, panic, str::FromStr, time::Duration};
 
 use anyhow::{Context, Result};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
@@ -127,15 +128,26 @@ impl Term {
                         state.create_err("No empty string allowed");
                     } else {
                         // input is valid
-                        // TODO: implement direct url query
-                        let task_type = TaskType::Search(val.clone());
-                        state.term_state.mode = Mode::Normal;
-                        let tab_id = state
-                            .term_state
-                            .tab_state
-                            .new_tab(val.clone())
-                            .context("Cannot create tab!")?;
-                        state.spawn_page(task_type, tab_id)?;
+                        if val.clone().starts_with("http") || val.clone().starts_with("https://") {
+                            // TODO: implement direct url query
+                            let task_type = TaskType::Url(Url::from_str(&val)?);
+                            state.term_state.mode = Mode::Normal;
+                            let tab_id = state
+                                .term_state
+                                .tab_state
+                                .new_tab(val.clone())
+                                .context("Cannot create tab!")?;
+                            state.spawn_page(task_type, tab_id)?;
+                        } else {
+                            let task_type = TaskType::Search(val.clone());
+                            state.term_state.mode = Mode::Normal;
+                            let tab_id = state
+                                .term_state
+                                .tab_state
+                                .new_tab(val.clone())
+                                .context("Cannot create tab!")?;
+                            state.spawn_page(task_type, tab_id)?;
+                        }
                     }
                 }
             }
