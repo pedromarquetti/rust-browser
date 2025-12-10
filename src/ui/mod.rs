@@ -1,6 +1,6 @@
 use ratatui::prelude::*;
 use reqwest::Url;
-use std::{mem::take, panic, str::FromStr, time::Duration};
+use std::{mem::take, str::FromStr, time::Duration};
 
 use anyhow::{Context, Result};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
@@ -111,6 +111,15 @@ impl Term {
             (KeyCode::Char('n'), Mode::Normal) => state.term_state.tab_state.next_tab()?,
             (KeyCode::Char('p'), Mode::Normal) => state.term_state.tab_state.prev_tab()?,
             (KeyCode::Char('d'), Mode::Normal) => state.term_state.tab_state.del_tab()?,
+            (KeyCode::Char('o'), Mode::Normal) => {
+                let curr_item = state.term_state.tab_state.get_selected_item()?;
+
+                if curr_item.link.is_some() {
+                    let url = Url::from_str(&curr_item.link.unwrap_or_default().url)?;
+                    state.go_to_url(url)?;
+                }
+            }
+            // open in default browser
             (KeyCode::Enter, Mode::Normal) => {
                 let curr_item = state.term_state.tab_state.get_selected_item()?;
 
@@ -127,26 +136,31 @@ impl Term {
                     if val.is_empty() || val == " " || val.split_whitespace().next().is_none() {
                         state.create_err("No empty string allowed");
                     } else {
-                        // input is valid
-                        if val.clone().starts_with("http") || val.clone().starts_with("https://") {
-                            // TODO: implement direct url query
-                            let task_type = TaskType::Url(Url::from_str(&val)?);
-                            state.term_state.mode = Mode::Normal;
-                            let tab_id = state
-                                .term_state
-                                .tab_state
-                                .new_tab(val.clone())
-                                .context("Cannot create tab!")?;
-                            state.spawn_page(task_type, tab_id)?;
-                        } else {
-                            let task_type = TaskType::Search(val.clone());
-                            state.term_state.mode = Mode::Normal;
-                            let tab_id = state
-                                .term_state
-                                .tab_state
-                                .new_tab(val.clone())
-                                .context("Cannot create tab!")?;
-                            state.spawn_page(task_type, tab_id)?;
+                        match Url::from_str(&val) {
+                            Ok(url) => {
+                                let schema = url.scheme();
+                                if schema.starts_with("https") || schema.starts_with("http") {
+                                    let task_type = TaskType::Url(Url::from_str(&val)?);
+                                    state.term_state.mode = Mode::Normal;
+                                    let tab_id = state
+                                        .term_state
+                                        .tab_state
+                                        .new_tab(val.clone())
+                                        .context("Cannot create tab!")?;
+                                    state.spawn_page(task_type, tab_id)?;
+                                }
+                            }
+                            Err(_) => {
+                                // input is valid but not URL
+                                let task_type = TaskType::Search(val.clone());
+                                state.term_state.mode = Mode::Normal;
+                                let tab_id = state
+                                    .term_state
+                                    .tab_state
+                                    .new_tab(val.clone())
+                                    .context("Cannot create tab!")?;
+                                state.spawn_page(task_type, tab_id)?;
+                            }
                         }
                     }
                 }

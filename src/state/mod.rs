@@ -83,6 +83,7 @@ impl State {
 
     /// Helper func. for select next list item for ParsedPage content
     pub fn next_item(&mut self) -> Result<()> {
+        // BUG: scrolling too fast leaves some residual text render
         if let Some(tab) = &mut self.term_state.tab_state.curr_tab {
             // early return if page did not finish loading
             if tab.is_loading {
@@ -164,6 +165,11 @@ impl State {
                 }
             }
         }
+    }
+
+    pub fn go_to_url(&mut self, url: Url) -> Result<()> {
+        let tab_id = self.term_state.tab_state.new_tab(url.to_string())?;
+        self.spawn_page(TaskType::Url(url), tab_id)
     }
 
     pub fn spawn_page(&mut self, task_type: TaskType, tab_id: i32) -> Result<()> {

@@ -49,6 +49,7 @@ impl StatefulWidget for &mut Page {
 
             if let Some(tab) = &mut state.term_state.tab_state.curr_tab {
                 if let Some(content) = &mut tab.content {
+                    // BUG: Opening a new tab or switching tabs should not reset item index
                     StatefulWidget::render(list, list_area, buf, &mut content.state);
                 }
             }

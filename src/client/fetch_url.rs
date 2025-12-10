@@ -6,14 +6,13 @@ use reqwest::{Client, Url};
 use scraper::{ElementRef, Html, Node, Selector};
 
 use crate::client::{
-    fetcher::get_req, page_part::Part, parser::{Link, ParsedPage, ParserTrait}, WebClientTrait
+    WebClientTrait,
+    fetcher::get_req,
+    page_part::Part,
+    parser::{Link, ParsedPage, ParserTrait},
 };
 
-static APP_USER_AGENT: &str = concat!(
-    env!("CARGO_PKG_NAME"),
-    "/",
-    env!("CARGO_PKG_VERSION"),
-);
+static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct FetchUrl {
@@ -55,7 +54,8 @@ impl ParserTrait for FetchUrl {
         let mut parts: Vec<Part> = vec![];
 
         let doc = Html::parse_document(&self.data);
-        let main_sel = Selector::parse("main, article, body").unwrap();
+        let main_sel =
+            Selector::parse("main, article, body").map_err(|e| return anyhow!(e.to_string()))?;
         let start_nodes: Vec<ElementRef> = doc.select(&main_sel).collect();
 
         let root = if let Some(el) = start_nodes.first() {
