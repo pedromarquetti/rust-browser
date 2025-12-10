@@ -182,7 +182,7 @@ impl State {
                         error: e.to_string(),
                     },
                 },
-                TaskType::Url(url) => match web_state.fetch_url(url).await {
+                TaskType::Url(url) => match web_state.fetch_url(url, tab_id).await {
                     Ok(()) => TaskResult::Loaded {
                         tab_id: tab_id,
                         page: web_state.curr_page,

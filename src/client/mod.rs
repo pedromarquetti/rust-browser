@@ -1,18 +1,9 @@
-use std::str::FromStr;
+use crate::{client::parser::ParsedPage, state::webclient_state::WebClientState};
 
-use crate::{
-    client::{
-        fetcher::get_req,
-        parser::{ParsedPage, ParserTrait},
-        searxng::SearxngResult,
-    },
-    state::webclient_state::WebClientState,
-};
+use anyhow::Result;
+use reqwest::Url;
 
-use anyhow::{Context, Result, anyhow};
-use ratatui::widgets::StatefulWidget;
-use reqwest::{Client, Url};
-
+pub mod fetch_url;
 pub mod fetcher;
 pub mod page_part;
 pub mod parser;
@@ -31,4 +22,3 @@ pub trait WebClientTrait {
         state: &mut WebClientState,
     ) -> impl Future<Output = Result<ParsedPage>> + Send;
 }
-

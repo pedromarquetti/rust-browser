@@ -1,9 +1,9 @@
 use crate::{
-    client::{WebClientTrait, fetcher::get_req, parser::ParsedPage, searxng::SearxngResult},
+    client::{WebClientTrait, fetch_url::FetchUrl, parser::ParsedPage, searxng::SearxngResult},
     config::webclient_config::AvailableSearchEngines,
 };
 use anyhow::{Context, Result, anyhow};
-use reqwest::{Client, Url};
+use reqwest::Url;
 
 #[derive(Debug, Clone, Default)]
 pub struct WebClientState {
@@ -28,8 +28,13 @@ impl SearchProvider {
 }
 
 impl WebClientState {
-    pub async fn fetch_url(&mut self, url: Url) -> Result<()> {
-        todo!()
+    pub async fn fetch_url(&mut self, url: Url, tab_id: i32) -> Result<()> {
+        let page = FetchUrl::default().fetch_url(url.clone(), self).await?;
+
+        self.is_loading = false;
+        self.curr_page = page;
+        self.curr_page.tab_id = tab_id;
+        Ok(())
     }
 
     /// shared state to search the web
