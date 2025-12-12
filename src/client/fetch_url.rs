@@ -51,7 +51,8 @@ impl WebClientTrait for FetchUrl {
 
 impl ParserTrait for FetchUrl {
     fn to_parsed_page(&self, url: Url) -> anyhow::Result<super::parser::ParsedPage> {
-        let mut parts: Vec<Part> = vec![];
+        let parts: Vec<Part> = vec![];
+        let mut page_str: String = String::new().to_owned();
 
         let doc = Html::parse_document(&self.data);
         let main_sel =
@@ -79,7 +80,7 @@ impl ParserTrait for FetchUrl {
             }
         };
 
-        walk(&mut parts, root, &url);
+        walk(&mut page_str, root, &url);
 
         // Post-process: collapse consecutive empty text parts
         let mut collapsed: Vec<Part> = Vec::with_capacity(parts.len());
@@ -103,6 +104,8 @@ impl ParserTrait for FetchUrl {
                 last_empty = false;
             }
         }
+
+        collapsed.push(Part::text(page_str));
 
         // Ensure we have at least one item
         if collapsed.is_empty() {
@@ -133,14 +136,15 @@ impl Default for FetchUrl {
     }
 }
 
-fn push_non_empty_text(parts: &mut Vec<Part>, s: &str) {
+fn push_non_empty_text(parts: &mut String, s: &str) {
     let text = s.trim();
     if !text.is_empty() {
-        parts.push(Part::text(text.to_string()));
+        parts.push_str(text);
+        newline(parts);
     }
 }
 
-fn walk(parts: &mut Vec<Part>, el: ElementRef, base_url: &Url) {
+fn walk(parts: &mut String, el: ElementRef, base_url: &Url) {
     let name = el.value().name();
     if is_skippable(name) {
         return;
@@ -165,7 +169,8 @@ fn walk(parts: &mut Vec<Part>, el: ElementRef, base_url: &Url) {
                 text: link_text, // use same text as title for inline links
                 url: resolved.to_string(),
             };
-            parts.push(Part::link(link));
+            parts.push_str(&link.to_string());
+            newline(parts);
         } else {
             // No href, treat as text
             let text = el.text().collect::<Vec<_>>().join(" ");
@@ -192,14 +197,18 @@ fn walk(parts: &mut Vec<Part>, el: ElementRef, base_url: &Url) {
 
     if is_block {
         // Add a small separator between blocks to keep reading flow
-        parts.push(Part::text(String::from("")));
+        parts.push_str(&String::from(""));
     }
 }
 
-// Heuristics: skip non-content tags
+/// Skip non-content tags
 fn is_skippable(name: &str) -> bool {
     matches!(
         name,
         "script" | "style" | "noscript" | "template" | "svg" | "canvas" | "iframe"
     )
+}
+
+fn newline(str: &mut String) {
+    str.push_str(&String::from("\n"));
 }

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use anyhow::Result;
 use ratatui::widgets::ListState;
 use reqwest::Url;
@@ -44,4 +46,10 @@ pub struct Link {
     pub title: String,
     pub text: String,
     pub url: String,
+}
+
+impl Display for Link {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} - {}", self.title, self.url)
+    }
 }

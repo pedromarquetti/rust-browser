@@ -7,7 +7,6 @@ use crate::state::State;
 #[derive(Debug, Default)]
 pub struct Page {
     pub is_loading: bool,
-    pub page: ParsedPage,
 }
 
 impl Page {
@@ -24,17 +23,21 @@ impl StatefulWidget for &mut Page {
             let block = Block::default().borders(Borders::all()).title("Page");
             let inner = block.inner(area);
             let available_width = inner.width;
+            let scroll_idx: i32 = state.term_state.scroll_idx;
 
-            let items: Vec<ListItem> = state
-                .term_state
-                .tab_state
-                .curr_tab
-                .clone()
-                // TODO: make this better? this looks ugly lol
-                .unwrap_or_default()
-                .content
-                .unwrap_or_default()
-                .parsed_content
+            let (content_state, parts) = match state.term_state.tab_state.curr_tab.as_mut() {
+                Some(tab) => match tab.content.as_mut() {
+                    Some(content) => (&mut content.state, &content.parsed_content),
+                    None => {
+                        return;
+                    }
+                },
+                None => {
+                    return;
+                }
+            };
+
+            let items: Vec<ListItem> = parts
                 .iter()
                 .enumerate()
                 .map(|(_, part)| {
@@ -47,11 +50,14 @@ impl StatefulWidget for &mut Page {
 
             let [list_area] = Layout::vertical([Constraint::Fill(1)]).areas(area);
 
-            if let Some(tab) = &mut state.term_state.tab_state.curr_tab {
-                if let Some(content) = &mut tab.content {
-                    // BUG: Opening a new tab or switching tabs should not reset item index
-                    StatefulWidget::render(list, list_area, buf, &mut content.state);
-                }
+            // if len == 1, it's a direct URL fetch
+            if list.len() == 1 {
+                Paragraph::new(parts[0].clone().text.unwrap_or_default())
+                    .scroll((scroll_idx as u16, 0))
+                    .render(list_area, buf);
+            } else {
+                // BUG: Opening a new tab or switching tabs should not reset item index
+                StatefulWidget::render(list, list_area, buf, content_state);
             }
         } else {
             Paragraph::new("Loading...")

@@ -8,6 +8,7 @@ pub struct Tab {
     pub title: String,
     pub content: Option<ParsedPage>,
     pub is_loading: bool,
+    pub scroll_idx: i32,
 }
 
 impl Tab {
@@ -32,6 +33,7 @@ impl Default for Tab {
             title: "".to_string(),
             content: None,
             is_loading: false,
+            scroll_idx: 0,
         }
     }
 }
