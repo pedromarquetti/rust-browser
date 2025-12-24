@@ -120,6 +120,78 @@ impl Part {
         }
     }
 
+    /// Helper method for wrapping String (used for direct url)
+    pub fn to_wrapped_string( string: &mut String, width: u16) {
+        let max = width.saturating_sub(4) as usize;
+        if max == 0 || string.is_empty() {
+            return;
+        }
+
+        let mut wrapped = String::new();
+        for (i, line) in string.lines().enumerate() {
+            // Preserve empty lines (paragraph breaks)
+            if line.trim().is_empty() {
+                if i != 0 {
+                    wrapped.push('\n');
+                }
+                continue;
+            }
+
+            let mut curr = String::new();
+
+            for word in line.split_whitespace() {
+                if word.len() > max {
+                    if !curr.is_empty() {
+                        if !wrapped.is_empty() {
+                            wrapped.push('\n');
+                        }
+
+                        wrapped.push_str(&curr);
+                        curr.clear();
+                    }
+
+                    let mut start = 0;
+                    while start < word.len() {
+                        let end = (start + max).min(word.len());
+                        let chunk = &word[start..end];
+
+                        if !wrapped.is_empty() {
+                            wrapped.push('\n');
+                        }
+                        wrapped.push_str(chunk);
+                        start = end
+                    }
+                    continue;
+                }
+
+                let needs_space = !curr.is_empty();
+                let next_len = curr.len() + needs_space as usize + word.len();
+
+                if next_len <= max {
+                    if needs_space {
+                        curr.push(' ');
+                    }
+                    curr.push_str(word);
+                } else {
+                    if !wrapped.is_empty() {
+                        wrapped.push('\n');
+                    }
+                    wrapped.push_str(&curr);
+                    curr.clear();
+                    curr.push_str(word);
+                }
+            }
+            if !curr.is_empty() {
+                if !wrapped.is_empty() {
+                    wrapped.push('\n');
+                }
+                wrapped.push_str(&curr);
+            }
+        }
+
+        *string = wrapped;
+    }
+
     /// method for creating wrapped text and making it a ListItem
     pub fn to_list_item(&self, width: u16) -> ListItem<'static> {
         let width = width.saturating_sub(4) as usize;
@@ -133,6 +205,7 @@ impl Part {
                 }
 
                 if let Some(text) = &self.text {
+                    // BUG: lines are not wrapping
                     parse_text(&mut lines, text.to_string(), width);
                 }
 
@@ -165,7 +238,7 @@ impl Part {
     }
 }
 
-/// Helper function for handling text rendering
+/// Helper function for handling text rendering (Vec<Line> line wrappin)
 fn parse_text<'l>(lines: &mut Vec<Line<'l>>, text: String, width: usize) {
     if !text.is_empty() {
         for line in text.lines() {

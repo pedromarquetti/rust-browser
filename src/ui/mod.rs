@@ -1,4 +1,4 @@
-use ratatui::prelude::*;
+use ratatui::{prelude::*, widgets::Clear};
 use reqwest::Url;
 use std::{mem::take, str::FromStr, time::Duration};
 
@@ -97,18 +97,17 @@ impl Term {
                 state.term_state.mode = Mode::Normal
             }
             (KeyCode::Char('q'), Mode::Normal) => state.term_state.exit = true,
-            (KeyCode::Char('x'), Mode::Normal) => state.scroll_down(),
-            (KeyCode::Char('w'), Mode::Normal) => state.scroll_up(),
             (KeyCode::Char('k'), Mode::Normal) => {
-                state.prev_item()?;
+                state.handle_up()?;
             }
             (KeyCode::Char('j'), Mode::Normal) => {
-                state.next_item()?;
+                state.handle_down()?;
             }
             (KeyCode::Char('i'), Mode::Normal) | (KeyCode::Char('s'), Mode::Normal) => {
                 state.new_input();
             }
             (KeyCode::Char('n'), Mode::Normal) => state.term_state.tab_state.next_tab()?,
+            (KeyCode::Char('e'), Mode::Normal) => state.create_err(""),
             (KeyCode::Char('p'), Mode::Normal) => state.term_state.tab_state.prev_tab()?,
             (KeyCode::Char('d'), Mode::Normal) => state.term_state.tab_state.del_tab()?,
             (KeyCode::Char('o'), Mode::Normal) => {
@@ -145,7 +144,7 @@ impl Term {
                                     let tab_id = state
                                         .term_state
                                         .tab_state
-                                        .new_tab(val.clone())
+                                        .new_tab(val.clone(), task_type.clone())
                                         .context("Cannot create tab!")?;
                                     state.spawn_page(task_type, tab_id)?;
                                 }
@@ -157,7 +156,7 @@ impl Term {
                                 let tab_id = state
                                     .term_state
                                     .tab_state
-                                    .new_tab(val.clone())
+                                    .new_tab(val.clone(), task_type.clone())
                                     .context("Cannot create tab!")?;
                                 state.spawn_page(task_type, tab_id)?;
                             }
@@ -271,14 +270,16 @@ impl StatefulWidget for &mut Term {
             }
         };
 
+        Clear.render(page[0], buf);
+        Block::default().bg(Color::Reset).render(page[0], buf);
+
         if let Some(tab) = &state.term_state.tab_state.curr_tab {
             let mut p = Page {
                 is_loading: tab.is_loading,
-                ..Default::default()
             };
             p.create(page[0], buf, state);
         } else {
-            if state.term_state.input_state.is_none() && !state.term_state.is_err {
+            if state.term_state.input_state.is_none() {
                 Paragraph::new(
                     "Welcome to my simple Terminal Broswer".to_string()
                         + "\n\n"
@@ -291,7 +292,7 @@ impl StatefulWidget for &mut Term {
                 )
                 .alignment(ratatui::layout::Alignment::Center)
                 .block(Block::new().borders(Borders::all()))
-                .render(area, buf);
+                .render(page[0], buf);
             }
         }
 

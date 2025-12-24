@@ -8,8 +8,7 @@ use crate::{
     state::webclient_state::WebClientState,
 };
 
-use anyhow::{Context, Result, anyhow, bail};
-use ratatui::widgets::StatefulWidget;
+use anyhow::{Context, anyhow, bail};
 use reqwest::{Client, Url};
 
 use ratatui::widgets::ListState;

@@ -7,6 +7,7 @@ use crate::{
     config::Configs,
     state::{
         input::InputState,
+        tab_state::Tab,
         term::{Mode, TermState},
         webclient_state::{SearchProvider, WebClientState},
     },
@@ -63,8 +64,41 @@ impl State {
         }
     }
 
+    pub fn get_tab(&mut self) -> Result<&mut Tab> {
+        match self.term_state.tab_state.curr_tab.as_mut() {
+            Some(tab) => Ok(tab),
+            None => return Err(anyhow!("No tab!")),
+        }
+    }
+
+    pub fn handle_up(&mut self) -> Result<()> {
+        let tab = match self.get_tab() {
+            Ok(tab) => tab,
+            Err(_) => return Ok(()),
+        };
+
+        match tab.content_type {
+            TaskType::Search(_) => self.prev_item()?,
+            TaskType::Url(_) => self.scroll_up()?,
+        };
+        Ok(())
+    }
+
+    pub fn handle_down(&mut self) -> Result<()> {
+        let tab = match self.get_tab() {
+            Ok(tab) => tab,
+            Err(_) => return Ok(()),
+        };
+
+        match tab.content_type {
+            TaskType::Search(_) => self.next_item()?,
+            TaskType::Url(_) => self.scroll_down()?,
+        };
+        Ok(())
+    }
+
     /// Helper func. for select next list item for ParsedPage content
-    pub fn prev_item(&mut self) -> Result<()> {
+    fn prev_item(&mut self) -> Result<()> {
         if let Some(tab) = &mut self.term_state.tab_state.curr_tab {
             // early return if page did not finish loading
             if tab.is_loading {
@@ -82,8 +116,8 @@ impl State {
     }
 
     /// Helper func. for select next list item for ParsedPage content
-    pub fn next_item(&mut self) -> Result<()> {
-        // BUG: scrolling too fast leaves some residual text render
+    fn next_item(&mut self) -> Result<()> {
+        // BUG: scrolling too much leaves some residual text render
         if let Some(tab) = &mut self.term_state.tab_state.curr_tab {
             // early return if page did not finish loading
             if tab.is_loading {
@@ -100,14 +134,18 @@ impl State {
         Ok(())
     }
 
-    pub fn scroll_down(&mut self) {
-        self.term_state.scroll_idx = self.term_state.scroll_idx + 1;
+    fn scroll_down(&mut self) -> Result<()> {
+        let tab = self.get_tab()?;
+        tab.scroll_idx = tab.scroll_idx + 1;
+        Ok(())
     }
 
-    pub fn scroll_up(&mut self) {
-        if self.term_state.scroll_idx != 0 {
-            self.term_state.scroll_idx = self.term_state.scroll_idx - 1;
+    fn scroll_up(&mut self) -> Result<()> {
+        let tab = self.get_tab()?;
+        if tab.scroll_idx != 0 {
+            tab.scroll_idx = tab.scroll_idx - 1;
         }
+        Ok(())
     }
 
     pub fn create_err<S: Into<String>>(&mut self, msg: S) {
@@ -168,7 +206,10 @@ impl State {
     }
 
     pub fn go_to_url(&mut self, url: Url) -> Result<()> {
-        let tab_id = self.term_state.tab_state.new_tab(url.to_string())?;
+        let tab_id = self
+            .term_state
+            .tab_state
+            .new_tab(url.to_string(), TaskType::Url(url.clone()))?;
         self.spawn_page(TaskType::Url(url), tab_id)
     }
 

@@ -162,14 +162,14 @@ fn walk(parts: &mut String, el: ElementRef, base_url: &Url) {
         let link_text = el.text().collect::<Vec<_>>().join(" ").trim().to_string();
 
         if let Some(href) = el.value().attr("href") {
-            // Resolve relative URLs
             let resolved = base_url.join(href).unwrap_or_else(|_| base_url.clone());
+            // TODO: make url rendering better
             let link = Link {
                 title: link_text.clone(),
-                text: link_text, // use same text as title for inline links
+                text: link_text, 
                 url: resolved.to_string(),
             };
-            parts.push_str(&link.to_string());
+            parts.push_str(&link.text);
             newline(parts);
         } else {
             // No href, treat as text
@@ -184,7 +184,7 @@ fn walk(parts: &mut String, el: ElementRef, base_url: &Url) {
                 Node::Text(t) => {
                     push_non_empty_text(parts, t);
                 }
-                Node::Element(child_el) => {
+                Node::Element(_) => {
                     // Recurse into child elements
                     if let Some(child_ref) = ElementRef::wrap(child) {
                         walk(parts, child_ref, base_url);
