@@ -14,7 +14,7 @@ use crate::client::parser::Link;
 pub struct Part {
     state: PartState,
     pub title: Option<String>,
-    pub text: Option<String>,
+    pub content: Option<Content>,
     pub link: Option<Link>,
 }
 
@@ -30,7 +30,7 @@ impl Default for Part {
         Self {
             state: PartState::Text,
             title: None,
-            text: None,
+            content: None,
             link: None,
         }
     }
@@ -49,9 +49,9 @@ impl From<&Part> for ListItem<'_> {
                 }
 
                 // Add text content (will wrap)
-                if let Some(text) = &value.text {
-                    if !text.is_empty() {
-                        lines.push(Line::from(text.clone()));
+                if let Some(content) = &value.content {
+                    if !content.text.is_empty() {
+                        lines.push(Line::from(content.text.clone()));
                     }
                 }
 
@@ -72,9 +72,9 @@ impl From<&Part> for ListItem<'_> {
                 }
 
                 // Add link text
-                if let Some(text) = &value.text {
-                    if !text.is_empty() {
-                        lines.push(Line::from(text.clone()));
+                if let Some(content) = &value.content {
+                    if !content.text.is_empty() {
+                        lines.push(Line::from(content.text.clone()));
                     }
                 }
 
@@ -106,14 +106,14 @@ impl Part {
 
     pub fn text(text: String) -> Self {
         Self {
-            text: Some(text),
+            content: Some(Content::new(text)),
             ..Default::default()
         }
     }
 
     pub fn link(link: Link) -> Self {
         Self {
-            text: Some(link.text.clone()),
+            content: Some(Content::new(link.text.clone())),
             link: Some(link.clone()),
             title: Some(link.title),
             state: PartState::Link,
@@ -121,14 +121,17 @@ impl Part {
     }
 
     /// Helper method for wrapping String (used for direct url)
-    pub fn to_wrapped_string( string: &mut String, width: u16) {
+    pub fn to_wrapped_string(content: &mut Content, width: u16) {
         let max = width.saturating_sub(4) as usize;
-        if max == 0 || string.is_empty() {
+        if max == 0 || content.text.is_empty() {
             return;
         }
 
         let mut wrapped = String::new();
-        for (i, line) in string.lines().enumerate() {
+
+        let mut wordcount = 0;
+
+        for (i, line) in content.text.lines().enumerate() {
             // Preserve empty lines (paragraph breaks)
             if line.trim().is_empty() {
                 if i != 0 {
@@ -138,6 +141,8 @@ impl Part {
             }
 
             let mut curr = String::new();
+
+            wordcount += line.split_whitespace().count();
 
             for word in line.split_whitespace() {
                 if word.len() > max {
@@ -189,7 +194,9 @@ impl Part {
             }
         }
 
-        *string = wrapped;
+        content.text = wrapped;
+        content.wordcount = wordcount;
+        content.linecount = content.text.lines().count();
     }
 
     /// method for creating wrapped text and making it a ListItem
@@ -204,9 +211,8 @@ impl Part {
                     lines.push(Line::from(Span::raw(title.clone()).bold()));
                 }
 
-                if let Some(text) = &self.text {
-                    // BUG: lines are not wrapping
-                    parse_text(&mut lines, text.to_string(), width);
+                if let Some(content) = &self.content {
+                    parse_text(&mut lines, content.text.to_string(), width);
                 }
 
                 ListItem::new(Text::from(lines))
@@ -221,8 +227,8 @@ impl Part {
                     lines.push(Line::from(Span::raw(title.clone()).bold()));
                 }
 
-                if let Some(text) = &self.text {
-                    parse_text(&mut lines, text.to_string(), width);
+                if let Some(text) = &self.content {
+                    parse_text(&mut lines, text.text.to_string(), width);
                 }
 
                 if !link.url.is_empty() {
@@ -234,6 +240,31 @@ impl Part {
                 lines.push(Line::from(""));
                 ListItem::new(Text::from(lines))
             }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Content {
+    pub text: String,
+    pub linecount: usize,
+    pub wordcount: usize,
+}
+
+// impl Default for Content {
+//     fn default() -> Self {
+//         Self {
+//             ..Default::default()
+//         }
+//     }
+// }
+
+impl Content {
+    pub fn new(text: String) -> Self {
+        Self {
+            text: text,
+            linecount: 0,
+            wordcount: 0,
         }
     }
 }

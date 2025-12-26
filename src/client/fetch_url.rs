@@ -55,6 +55,7 @@ impl ParserTrait for FetchUrl {
         let mut page_str: String = String::new().to_owned();
 
         let doc = Html::parse_document(&self.data);
+
         let main_sel =
             Selector::parse("main, article, body").map_err(|e| return anyhow!(e.to_string()))?;
         let start_nodes: Vec<ElementRef> = doc.select(&main_sel).collect();
@@ -116,8 +117,14 @@ impl ParserTrait for FetchUrl {
         let mut state = ListState::default();
         state.select(Some(0));
 
+        let doc_title = doc
+            .select(&Selector::parse("title").map_err(|err| return anyhow!(err.to_string()))?)
+            .next()
+            .and_then(|e| Some(e.text().collect::<String>()))
+            .unwrap_or_else(|| "Title not found".to_string());
+
         Ok(ParsedPage {
-            title: url.to_string(),
+            title: doc_title,
             url: url.to_string(),
             parsed_content: collapsed,
             state,
@@ -140,7 +147,8 @@ fn push_non_empty_text(parts: &mut String, s: &str) {
     let text = s.trim();
     if !text.is_empty() {
         parts.push_str(text);
-        newline(parts);
+        parts.push(' ');
+        // newline(parts);
     }
 }
 
@@ -166,11 +174,12 @@ fn walk(parts: &mut String, el: ElementRef, base_url: &Url) {
             // TODO: make url rendering better
             let link = Link {
                 title: link_text.clone(),
-                text: link_text, 
+                text: link_text,
                 url: resolved.to_string(),
             };
             parts.push_str(&link.text);
-            newline(parts);
+            parts.push(' ');
+            // newline(parts);
         } else {
             // No href, treat as text
             let text = el.text().collect::<Vec<_>>().join(" ");
@@ -210,5 +219,5 @@ fn is_skippable(name: &str) -> bool {
 }
 
 fn newline(str: &mut String) {
-    str.push_str(&String::from("\n"));
+    str.push_str("\n");
 }

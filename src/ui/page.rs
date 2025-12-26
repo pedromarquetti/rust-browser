@@ -26,7 +26,6 @@ impl StatefulWidget for &mut Page {
         };
 
         if !tab.is_loading {
-            // let (parsed_page, content_state, pagepart_list) = match tab.content.as_mut() {
             let content = match tab.content.as_mut() {
                 Some(content) => content,
                 None => {
@@ -35,12 +34,14 @@ impl StatefulWidget for &mut Page {
             };
 
             let title = Line::from(content.title.clone()).style(Style::default());
-            let url = Line::from(content.url.clone()).style(Style::new().italic().fg(Color::Gray));
+            tab.title = content.title.clone();
+            let text = format!("words: {} lines: {}", tab.wordcount, tab.linecount);
+            let details = Line::from(text).style(Style::default());
 
             let block = Block::default()
                 .borders(Borders::all())
                 .title(title)
-                .title(url)
+                .title(details)
                 .bg(Color::Reset);
 
             let inner = block.inner(area);
@@ -58,6 +59,7 @@ impl StatefulWidget for &mut Page {
                 .collect();
 
             block.render(area, buf);
+
             Clear.render(inner, buf);
 
             let list = List::new(items.clone()).highlight_symbol(">");
@@ -66,11 +68,17 @@ impl StatefulWidget for &mut Page {
 
             // if len == 1, it's a direct URL fetch
             if list.len() == 1 {
-                let mut s = content.parsed_content[0].clone().text.unwrap_or_default();
+                let mut s = content.parsed_content[0]
+                    .clone()
+                    .content
+                    .unwrap_or_default();
 
                 Part::to_wrapped_string(&mut s, available_width);
 
-                Paragraph::new(s)
+                tab.set_wordcount(s.wordcount);
+                tab.set_linecount(s.linecount);
+
+                Paragraph::new(s.text)
                     .scroll((scroll_idx as u16, 0))
                     .render(list_area, buf);
             } else {

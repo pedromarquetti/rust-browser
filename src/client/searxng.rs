@@ -58,7 +58,7 @@ impl ParserTrait for SearxngResult {
         }
 
         Ok(ParsedPage {
-            title: self.query.clone(),
+            title: self.query.clone() + " - SearXNG",
             url: url.to_string(),
             parsed_content: content,
             state,

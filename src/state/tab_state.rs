@@ -11,6 +11,8 @@ pub struct Tab {
     pub title: String,
     pub content: Option<ParsedPage>,
     pub is_loading: bool,
+    pub linecount: usize,
+    pub wordcount: usize,
     pub scroll_idx: i32,
     /// defines if tab contains Search or Direct URL page
     pub content_type: TaskType,
@@ -26,6 +28,16 @@ impl Tab {
             ..Default::default()
         }
     }
+
+    /// set word count from parsed content
+    pub fn set_wordcount(&mut self, wordcount: usize) {
+        self.wordcount = wordcount;
+    }
+
+    /// set line count from parsed content
+    pub fn set_linecount(&mut self, linecount: usize) {
+        self.linecount = linecount;
+    }
 }
 
 impl Default for Tab {
@@ -33,6 +45,8 @@ impl Default for Tab {
         Self {
             id: -1,
             title: "".to_string(),
+            linecount: 0,
+            wordcount: 0,
             content: None,
             is_loading: false,
             scroll_idx: 0,
@@ -51,7 +65,7 @@ pub struct TabState {
 
 impl TabState {
     /// Helper func. to save current tab state (scroll idx)
-    fn save_tab(&mut self) {
+    pub fn save_tab(&mut self) {
         if let Some(tab) = &self.curr_tab {
             if let Some(stored_tab) = self.tab_list.get_mut(self.idx as usize) {
                 *stored_tab = tab.clone();
@@ -122,6 +136,7 @@ impl TabState {
         self.tab_list.push(tab.clone());
         self.idx = tab.id;
         self.curr_tab = Some(tab.clone());
+        // BUG: creating a new tab resets the previous tab scroll idx
         Ok(tab.id)
     }
 
@@ -161,9 +176,11 @@ impl TabState {
         Ok(())
     }
 
+    /// function for handling async task updates
     pub fn update_tab_content(&mut self, tab_id: i32, page: ParsedPage) -> Result<()> {
         if let Some(tab) = self.tab_list.iter_mut().find(|i| i.id == tab_id) {
             tab.content = Some(page.clone());
+            tab.title = page.title.clone();
             tab.is_loading = false;
 
             if self.idx == tab.id {

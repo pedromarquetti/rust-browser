@@ -107,10 +107,10 @@ impl Term {
                 state.new_input();
             }
             (KeyCode::Char('n'), Mode::Normal) => state.term_state.tab_state.next_tab()?,
-            (KeyCode::Char('e'), Mode::Normal) => state.create_err(""),
             (KeyCode::Char('p'), Mode::Normal) => state.term_state.tab_state.prev_tab()?,
             (KeyCode::Char('d'), Mode::Normal) => state.term_state.tab_state.del_tab()?,
             (KeyCode::Char('o'), Mode::Normal) => {
+                // current selected item by cursor
                 let curr_item = state.term_state.tab_state.get_selected_item()?;
 
                 if curr_item.link.is_some() {

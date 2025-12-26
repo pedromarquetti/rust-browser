@@ -64,6 +64,12 @@ impl State {
         }
     }
 
+    pub fn set_tab_title(&mut self, title: String) -> Result<()> {
+        let tab = self.get_tab()?;
+        tab.title = title;
+        Ok(())
+    }
+
     pub fn get_tab(&mut self) -> Result<&mut Tab> {
         match self.term_state.tab_state.curr_tab.as_mut() {
             Some(tab) => Ok(tab),
@@ -72,6 +78,12 @@ impl State {
     }
 
     pub fn handle_up(&mut self) -> Result<()> {
+        if self.term_state.is_err {
+            if self.term_state.scroll_idx != 0 {
+                self.term_state.scroll_idx -= 1
+            }
+        }
+
         let tab = match self.get_tab() {
             Ok(tab) => tab,
             Err(_) => return Ok(()),
@@ -85,6 +97,10 @@ impl State {
     }
 
     pub fn handle_down(&mut self) -> Result<()> {
+        if self.term_state.is_err {
+            self.term_state.scroll_idx += 1
+        }
+
         let tab = match self.get_tab() {
             Ok(tab) => tab,
             Err(_) => return Ok(()),
@@ -206,10 +222,10 @@ impl State {
     }
 
     pub fn go_to_url(&mut self, url: Url) -> Result<()> {
-        let tab_id = self
-            .term_state
-            .tab_state
-            .new_tab(url.to_string(), TaskType::Url(url.clone()))?;
+        let tab_id = self.term_state.tab_state.new_tab(
+            format!("loading {}", url.clone()),
+            TaskType::Url(url.clone()),
+        )?;
         self.spawn_page(TaskType::Url(url), tab_id)
     }
 
