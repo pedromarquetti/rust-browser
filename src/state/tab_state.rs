@@ -64,23 +64,14 @@ pub struct TabState {
 }
 
 impl TabState {
-    /// Helper func. to save current tab state (scroll idx)
+    /// Helper func. to save current tab state to tab list
+    /// (scroll idx fix)
     pub fn save_tab(&mut self) {
         if let Some(tab) = &self.curr_tab {
             if let Some(stored_tab) = self.tab_list.get_mut(self.idx as usize) {
                 *stored_tab = tab.clone();
             }
         }
-    }
-
-    fn free_resources(tab: &mut Tab) {
-        if let Some(mut page) = tab.content.take() {
-            page.parsed_content.clear();
-            page.parsed_content.shrink_to_fit();
-        }
-
-        tab.is_loading = false;
-        tab.scroll_idx = 0;
     }
 
     /// get currently selected item under ListState
@@ -100,10 +91,6 @@ impl TabState {
     pub fn del_tab(&mut self) -> Result<()> {
         if self.tab_list.is_empty() {
             return Ok(());
-        }
-
-        if let Some(tab) = self.tab_list.get_mut(self.idx as usize) {
-            Self::free_resources(tab);
         }
 
         self.tab_list.remove(self.idx as usize);
@@ -132,11 +119,14 @@ impl TabState {
     }
 
     pub fn new_tab<S: Into<String>>(&mut self, title: S, content_type: TaskType) -> Result<i32> {
+        if let Some(_) = self.curr_tab.as_mut() {
+            self.save_tab();
+        }
+
         let tab = Tab::new(self.tab_list.len() as i32, title.into(), content_type);
         self.tab_list.push(tab.clone());
         self.idx = tab.id;
         self.curr_tab = Some(tab.clone());
-        // BUG: creating a new tab resets the previous tab scroll idx
         Ok(tab.id)
     }
 

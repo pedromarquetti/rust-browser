@@ -33,6 +33,7 @@ impl StatefulWidget for &TabWidget {
             .map(|i| return i.title.clone());
 
         Tabs::new(titles.clone())
+            // TODO: add tab scrolling
             .select(state.term_state.tab_state.idx as usize)
             .titles(titles)
             .render(area, buf);

@@ -185,6 +185,23 @@ fn walk(parts: &mut String, el: ElementRef, base_url: &Url) {
             let text = el.text().collect::<Vec<_>>().join(" ");
             push_non_empty_text(parts, &text);
         }
+    } else if name == "p" {
+        // TODO: make paragraph separation better here
+        for child in el.children() {
+            match child.value() {
+                Node::Text(t) => {
+                    push_non_empty_text(parts, t);
+                    newline(parts);
+                }
+                Node::Element(_) => {
+                    // Recurse into child elements
+                    if let Some(child_ref) = ElementRef::wrap(child) {
+                        walk(parts, child_ref, base_url);
+                    }
+                }
+                _ => {}
+            }
+        }
     } else {
         // For other elements, gather direct text nodes first to preserve flow
         // Collect only text nodes that are immediate children (to avoid double-capturing)

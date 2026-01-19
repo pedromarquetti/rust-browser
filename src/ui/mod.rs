@@ -233,6 +233,7 @@ impl Term {
         }
         Ok(())
     }
+
 }
 
 impl StatefulWidget for &mut Term {

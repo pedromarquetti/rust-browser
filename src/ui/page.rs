@@ -79,6 +79,8 @@ impl StatefulWidget for &mut Page {
                 tab.set_linecount(s.linecount);
 
                 Paragraph::new(s.text)
+                    // TODO: limit page scroll:
+                    // Page scroll should not be infinite, it should be limited to page height
                     .scroll((scroll_idx as u16, 0))
                     .render(list_area, buf);
             } else {
