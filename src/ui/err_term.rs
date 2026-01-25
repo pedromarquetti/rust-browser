@@ -5,6 +5,8 @@ use ratatui::{
     widgets::{Block, Clear, Paragraph, Wrap},
 };
 
+use crate::helpers::{calc_height, popup_area};
+
 #[derive(Debug, Default)]
 pub struct ErrorTerm<'a> {
     pub msg: &'a str,
@@ -20,30 +22,6 @@ impl<'a> ErrorTerm<'a> {
         self.render(area, buf);
         Ok(())
     }
-
-    fn calc_height(&self, width: u16, area: Rect) -> u16 {
-        let available_width = width.saturating_sub(4) as usize; // Account for borders and padding
-        let mut total_lines = 0;
-
-        for line in self.msg.lines() {
-            if line.is_empty() {
-                total_lines += 1;
-            } else {
-                // Calculate wrapped lines for this text line
-                let chars = line.chars().count();
-                let wrapped_lines = (chars / available_width).max(1);
-                total_lines += wrapped_lines;
-            }
-        }
-
-        // Add lines for footer message
-        total_lines += 2; // "Press ESC to clear error" + empty line
-
-        // Add padding for borders
-        (total_lines as u16)
-            .saturating_add(4)
-            .min(area.height.saturating_sub(4))
-    }
 }
 
 impl<'a> Widget for &ErrorTerm<'a> {
@@ -52,7 +30,7 @@ impl<'a> Widget for &ErrorTerm<'a> {
         Self: Sized,
     {
         let width = 80.min(area.width.saturating_sub(4));
-        let height = self.calc_height(width, area);
+        let height = calc_height(self.msg, width, area, false);
 
         let popup_area = popup_area(area, width, height);
 
@@ -71,15 +49,4 @@ impl<'a> Widget for &ErrorTerm<'a> {
         Clear.render(popup_area, buf);
         Widget::render(paragraph, popup_area, buf);
     }
-}
-
-/// helper function to create a centered rect using up certain percentage of the available rect `r`
-fn popup_area(area: Rect, width: u16, height: u16) -> Rect {
-    let vertical = Layout::vertical([Constraint::Length(height)]).flex(Flex::Center);
-
-    let horizontal = Layout::horizontal([Constraint::Length(width)]).flex(Flex::Center);
-
-    let [area] = vertical.areas(area);
-    let [area] = horizontal.areas(area);
-    area
 }

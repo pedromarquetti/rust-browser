@@ -17,6 +17,7 @@ pub mod input;
 pub mod tab_state;
 pub mod term;
 pub mod webclient_state;
+pub mod cursor;
 
 #[derive(Debug, Clone)]
 pub enum TaskResult {

@@ -17,6 +17,7 @@ use crate::{
 };
 
 mod err_term;
+mod input;
 mod page;
 mod tabs;
 mod top;
@@ -233,7 +234,6 @@ impl Term {
         }
         Ok(())
     }
-
 }
 
 impl StatefulWidget for &mut Term {

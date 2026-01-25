@@ -10,6 +10,7 @@ use crate::{
 pub mod client;
 pub mod config;
 pub mod state;
+pub mod helpers;
 pub mod ui;
 
 #[tokio::main]
