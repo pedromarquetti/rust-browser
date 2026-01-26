@@ -57,11 +57,11 @@ impl ParserTrait for FetchUrl {
         let doc = Html::parse_document(&self.data);
 
         let main_sel =
-            Selector::parse("main, article, body").map_err(|e| return anyhow!(e.to_string()))?;
+            Selector::parse("main, article, body").map_err(|e| anyhow!(e.to_string()))?;
         let start_nodes: Vec<ElementRef> = doc.select(&main_sel).collect();
 
         let root = if let Some(el) = start_nodes.first() {
-            el.clone()
+            *el
         } else {
             // Fallback to document root as ElementRef by selecting html tag if present
             if let Some(html_el) = doc.select(&Selector::parse("html").unwrap()).next() {
@@ -118,9 +118,8 @@ impl ParserTrait for FetchUrl {
         state.select(Some(0));
 
         let doc_title = doc
-            .select(&Selector::parse("title").map_err(|err| return anyhow!(err.to_string()))?)
-            .next()
-            .and_then(|e| Some(e.text().collect::<String>()))
+            .select(&Selector::parse("title").map_err(|err| anyhow!(err.to_string()))?)
+            .next().map(|e| e.text().collect::<String>())
             .unwrap_or_else(|| "Title not found".to_string());
 
         Ok(ParsedPage {
@@ -223,7 +222,7 @@ fn walk(parts: &mut String, el: ElementRef, base_url: &Url) {
 
     if is_block {
         // Add a small separator between blocks to keep reading flow
-        parts.push_str(&String::from(""));
+        parts.push_str("");
     }
 }
 
@@ -236,5 +235,5 @@ fn is_skippable(name: &str) -> bool {
 }
 
 fn newline(str: &mut String) {
-    str.push_str("\n");
+    str.push('\n');
 }

@@ -10,6 +10,12 @@ use crate::state::State;
 #[derive(Debug)]
 pub struct TabWidget {}
 
+impl Default for TabWidget {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TabWidget {
     pub fn new() -> Self {
         Self {}
@@ -30,7 +36,7 @@ impl StatefulWidget for &TabWidget {
             .tab_state
             .tab_list
             .iter()
-            .map(|i| return i.title.clone());
+            .map(|i| i.title.clone());
 
         Tabs::new(titles.clone())
             // TODO: add tab scrolling

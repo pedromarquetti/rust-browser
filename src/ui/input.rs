@@ -10,6 +10,12 @@ use crate::{
 
 pub struct Input;
 
+impl Default for Input {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Input {
     pub fn new() -> Self {
         Self {}

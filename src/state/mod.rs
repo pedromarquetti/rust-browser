@@ -74,16 +74,15 @@ impl State {
     pub fn get_tab(&mut self) -> Result<&mut Tab> {
         match self.term_state.tab_state.curr_tab.as_mut() {
             Some(tab) => Ok(tab),
-            None => return Err(anyhow!("No tab!")),
+            None => Err(anyhow!("No tab!")),
         }
     }
 
     pub fn handle_up(&mut self) -> Result<()> {
-        if self.term_state.is_err {
-            if self.term_state.scroll_idx != 0 {
+        if self.term_state.is_err
+            && self.term_state.scroll_idx != 0 {
                 self.term_state.scroll_idx -= 1
             }
-        }
 
         let tab = match self.get_tab() {
             Ok(tab) => tab,
@@ -153,14 +152,14 @@ impl State {
 
     fn scroll_down(&mut self) -> Result<()> {
         let tab = self.get_tab()?;
-        tab.scroll_idx = tab.scroll_idx + 1;
+        tab.scroll_idx += 1;
         Ok(())
     }
 
     fn scroll_up(&mut self) -> Result<()> {
         let tab = self.get_tab()?;
         if tab.scroll_idx != 0 {
-            tab.scroll_idx = tab.scroll_idx - 1;
+            tab.scroll_idx -= 1;
         }
         Ok(())
     }
@@ -194,7 +193,7 @@ impl State {
         self.term_state.mode = Mode::Normal;
         self.term_state.input_state = None;
         match &self.term_state.input_state {
-            Some(input) => return Some(input.value.clone()),
+            Some(input) => Some(input.value.clone()),
             None => {
                 self.create_err("No string found".to_string());
                 None
@@ -238,29 +237,29 @@ impl State {
             let res = match task_type {
                 TaskType::Search(query) => match web_state.search(query, tab_id).await {
                     Ok(()) => TaskResult::Loaded {
-                        tab_id: tab_id,
+                        tab_id,
                         page: web_state.curr_page,
                     },
                     Err(e) => TaskResult::LoadError {
-                        tab_id: tab_id,
+                        tab_id,
                         error: e.to_string(),
                     },
                 },
                 TaskType::Url(url) => match web_state.fetch_url(url, tab_id).await {
                     Ok(()) => TaskResult::Loaded {
-                        tab_id: tab_id,
+                        tab_id,
                         page: web_state.curr_page,
                     },
                     Err(e) => TaskResult::LoadError {
-                        tab_id: tab_id,
+                        tab_id,
                         error: e.to_string(),
                     },
                 },
             };
             match tx.send(res) {
-                Ok(_) => return Ok(()),
-                Err(err) => return Err(anyhow!("Error spawning page: {}", err.to_string())),
-            };
+                Ok(_) => Ok(()),
+                Err(err) => Err(anyhow!("Error spawning page: {}", err)),
+            }
         });
         Ok(())
     }

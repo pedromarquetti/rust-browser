@@ -67,11 +67,10 @@ impl TabState {
     /// Helper func. to save current tab state to tab list
     /// (scroll idx fix)
     pub fn save_tab(&mut self) {
-        if let Some(tab) = &self.curr_tab {
-            if let Some(stored_tab) = self.tab_list.get_mut(self.idx as usize) {
+        if let Some(tab) = &self.curr_tab
+            && let Some(stored_tab) = self.tab_list.get_mut(self.idx as usize) {
                 *stored_tab = tab.clone();
             }
-        }
     }
 
     /// get currently selected item under ListState
@@ -79,12 +78,12 @@ impl TabState {
         if let Some(tab) = &self.curr_tab {
             if let Some(page) = &tab.content {
                 let idx = page.state.selected().unwrap_or(0);
-                return Ok(page.parsed_content[idx].clone());
+                Ok(page.parsed_content[idx].clone())
             } else {
-                return Err(anyhow!("No page!"));
+                Err(anyhow!("No page!"))
             }
         } else {
-            return Err(anyhow!("No tab!"));
+            Err(anyhow!("No tab!"))
         }
     }
 
@@ -119,7 +118,7 @@ impl TabState {
     }
 
     pub fn new_tab<S: Into<String>>(&mut self, title: S, content_type: TaskType) -> Result<i32> {
-        if let Some(_) = self.curr_tab.as_mut() {
+        if self.curr_tab.as_mut().is_some() {
             self.save_tab();
         }
 
@@ -173,12 +172,11 @@ impl TabState {
             tab.title = page.title.clone();
             tab.is_loading = false;
 
-            if self.idx == tab.id {
-                if let Some(curr_tab) = &mut self.curr_tab {
+            if self.idx == tab.id
+                && let Some(curr_tab) = &mut self.curr_tab {
                     curr_tab.content = Some(page);
                     curr_tab.is_loading = false;
                 }
-            }
 
             Ok(())
         } else {

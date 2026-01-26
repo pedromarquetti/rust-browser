@@ -87,7 +87,7 @@ impl Configs {
 
         let file = read(&path);
 
-        if !file.is_ok() {
+        if file.is_err() {
             self.create_config()?;
         }
 
@@ -102,7 +102,7 @@ impl Configs {
                 return Err(anyhow!(
                     "{} is not a valid url!\nParse Error: {}",
                     config.webclient_config.search_url,
-                    err.to_string()
+                    err
                 ));
             }
         };

@@ -34,8 +34,8 @@ async fn run_app() -> Result<()> {
 
     state.load_configs(config);
 
-    let app = Term::new().run(&mut terminal, state);
+    
 
-    app
+    Term::new().run(&mut terminal, state)
 
 }

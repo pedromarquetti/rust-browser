@@ -51,8 +51,7 @@ impl StatefulWidget for &mut Page {
             let items: Vec<ListItem> = content
                 .parsed_content
                 .iter()
-                .enumerate()
-                .map(|(_, part)| {
+                .map(|part| {
                     // creating List
                     part.to_list_item(available_width)
                 })

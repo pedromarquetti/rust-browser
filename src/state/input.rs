@@ -36,7 +36,7 @@ impl InputState {
     }
 
     pub fn backspace(&mut self) -> Result<()> {
-        if self.value == "" {
+        if self.value.is_empty() {
             return Ok(());
         }
 

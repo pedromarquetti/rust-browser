@@ -9,6 +9,12 @@ use crate::ui::tabs::TabWidget;
 /// Widget for handling the top bar
 pub struct Top;
 
+impl Default for Top {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Top {
     pub fn new() -> Self {
         Top {}
@@ -24,14 +30,11 @@ impl StatefulWidget for &mut Top {
     type State = State;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        match state.term_state.mode {
-            Mode::Normal => match TabWidget::new().create(area, buf, state) {
-                Ok(ok) => ok,
-                Err(err) => {
-                    state.create_err(err.to_string());
-                }
-            },
-            _ => {}
-        }
+        if state.term_state.mode == Mode::Normal { match TabWidget::new().create(area, buf, state) {
+            Ok(ok) => ok,
+            Err(err) => {
+                state.create_err(err.to_string());
+            }
+        } }
     }
 }

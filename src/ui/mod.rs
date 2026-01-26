@@ -28,6 +28,12 @@ mod top;
 #[derive(Debug)]
 pub struct Term {}
 
+impl Default for Term {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Term {
     pub fn new() -> Term {
         Term {}
@@ -57,8 +63,8 @@ impl Term {
 
         state.term_state.cols = frame.area().width;
 
-        if state.term_state.mode == Mode::Insert && state.term_state.tab_state.curr_tab.is_none() {
-            if let Some(input) = state.term_state.input_state.as_ref() {
+        if state.term_state.mode == Mode::Insert && state.term_state.tab_state.curr_tab.is_none()
+            && let Some(input) = state.term_state.input_state.as_ref() {
                 // derive screen cursor from input state
                 let prefix_len: u16 = 2; // ": "
                 let typed_len = input.value[..input.cursor.get_pos().0].chars().count() as u16;
@@ -67,7 +73,6 @@ impl Term {
 
                 frame.set_cursor_position(Position::new(x, y));
             }
-        }
     }
 
     /// main event handler
@@ -253,29 +258,26 @@ impl StatefulWidget for &mut Term {
                 is_loading: tab.is_loading,
             };
             p.create(page[0], buf, state);
-        } else {
-            if state.term_state.input_state.is_none() {
-                Paragraph::new(
-                    "Welcome to my simple Terminal Broswer".to_string()
-                        + "\n\n"
-                        + "Esc -> Normal mode\n"
-                        + "In normal mode: \t\n"
-                        + "t -> New Tab\t\n"
-                        + "n -> next tab\t\n"
-                        + "p -> prev. tab\t\n"
-                        + "d -> delete tab\t\n",
-                )
-                .alignment(ratatui::layout::Alignment::Center)
-                .block(Block::new().borders(Borders::all()))
-                .render(page[0], buf);
-            }
+        } else if state.term_state.input_state.is_none() {
+            Paragraph::new(
+                "Welcome to my simple Terminal Broswer".to_string()
+                    + "\n\n"
+                    + "Esc -> Normal mode\n"
+                    + "In normal mode: \t\n"
+                    + "t -> New Tab\t\n"
+                    + "n -> next tab\t\n"
+                    + "p -> prev. tab\t\n"
+                    + "d -> delete tab\t\n",
+            )
+            .alignment(ratatui::layout::Alignment::Center)
+            .block(Block::new().borders(Borders::all()))
+            .render(page[0], buf);
         }
 
-        if state.term_state.mode == Mode::Insert {
-            if let Some(inputstate) = state.term_state.input_state.as_mut() {
+        if state.term_state.mode == Mode::Insert
+            && let Some(inputstate) = state.term_state.input_state.as_mut() {
                 Input::new().create(area, buf, inputstate);
             }
-        }
 
         if state.term_state.is_err {
             ErrorTerm::new(&state.term_state.err_msg, state.term_state.scroll_idx)

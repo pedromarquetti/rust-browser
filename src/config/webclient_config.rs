@@ -11,9 +11,7 @@ pub struct WebClientConfig {
 
 impl WebClientConfig {
     pub fn new<U: IntoUrl>(u: U) -> Self {
-        if !u.into_url().is_ok(){
-
-        }
+        u.into_url().is_ok();
         todo!()
     }
 }

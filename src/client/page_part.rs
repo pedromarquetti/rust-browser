@@ -42,18 +42,16 @@ impl From<&Part> for ListItem<'_> {
             PartState::Text => {
                 let mut lines = vec![];
 
-                if let Some(title) = &value.title {
-                    if !title.is_empty() {
+                if let Some(title) = &value.title
+                    && !title.is_empty() {
                         lines.push(Line::from(Span::raw(title.clone()).bold()));
                     }
-                }
 
                 // Add text content (will wrap)
-                if let Some(content) = &value.content {
-                    if !content.text.is_empty() {
+                if let Some(content) = &value.content
+                    && !content.text.is_empty() {
                         lines.push(Line::from(content.text.clone()));
                     }
-                }
 
                 // Add empty line for spacing
                 lines.push(Line::from(""));
@@ -65,18 +63,16 @@ impl From<&Part> for ListItem<'_> {
                 let mut lines = vec![];
 
                 // Add title if present
-                if let Some(title) = &value.title {
-                    if !title.is_empty() {
+                if let Some(title) = &value.title
+                    && !title.is_empty() {
                         lines.push(Line::from(Span::raw(title.clone()).bold().blue()));
                     }
-                }
 
                 // Add link text
-                if let Some(content) = &value.content {
-                    if !content.text.is_empty() {
+                if let Some(content) = &value.content
+                    && !content.text.is_empty() {
                         lines.push(Line::from(content.text.clone()));
                     }
-                }
 
                 // Add URL
                 if !link.url.is_empty() {
@@ -92,7 +88,7 @@ impl From<&Part> for ListItem<'_> {
             }
         };
 
-        return ListItem::new(text);
+        ListItem::new(text)
     }
 }
 
@@ -262,7 +258,7 @@ pub struct Content {
 impl Content {
     pub fn new(text: String) -> Self {
         Self {
-            text: text,
+            text,
             linecount: 0,
             wordcount: 0,
         }
@@ -280,7 +276,7 @@ fn parse_text<'l>(lines: &mut Vec<Line<'l>>, text: String, width: usize) {
                 let mut curr_line = String::new();
 
                 for word in words {
-                    if curr_line.len() + word.len() + 1 <= width {
+                    if curr_line.len() + word.len() < width {
                         if !curr_line.is_empty() {
                             curr_line.push(' ');
                         }
