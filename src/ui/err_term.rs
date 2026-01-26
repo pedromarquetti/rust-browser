@@ -1,6 +1,5 @@
 use anyhow::Result;
 use ratatui::{
-    layout::Flex,
     prelude::*,
     widgets::{Block, Clear, Paragraph, Wrap},
 };

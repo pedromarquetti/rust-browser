@@ -10,7 +10,10 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, StatefulWidget, Widget},
 };
 
-use crate::ui::{err_term::ErrorTerm, top::Top};
+use crate::{
+    state::input::InputType,
+    ui::{err_term::ErrorTerm, input::Input, top::Top},
+};
 use crate::{
     state::{State, TaskType, term::Mode},
     ui::page::Page,
@@ -52,23 +55,16 @@ impl Term {
     fn draw(&mut self, frame: &mut Frame, state: &mut State) {
         frame.render_stateful_widget(self, frame.area(), state);
 
+        state.term_state.cols = frame.area().width;
+
         if state.term_state.mode == Mode::Insert && state.term_state.tab_state.curr_tab.is_none() {
-            let main_layout = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints(vec![Constraint::Length(1), Constraint::Min(0)])
-                .split(frame.area());
-
-            let top = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints(vec![Constraint::Min(1)])
-                .split(main_layout[0]);
-
             if let Some(input) = state.term_state.input_state.as_ref() {
-                let prefix = " ";
-                let prefix_len = prefix.len() as u16;
-                let cursor_cols = input.value[..input.cursor].chars().count() as u16;
-                let x = top[0].x + prefix_len + cursor_cols; // +1 to be inside the bordered block
-                let y = top[0].y;
+                // derive screen cursor from input state
+                let prefix_len: u16 = 2; // ": "
+                let typed_len = input.value[..input.cursor.get_pos().0].chars().count() as u16;
+                let x = input.input_area.x + 1 + prefix_len + typed_len;
+                let y = input.input_area.y + 1;
+
                 frame.set_cursor_position(Position::new(x, y));
             }
         }
@@ -95,7 +91,13 @@ impl Term {
                     state.term_state.is_err = false;
                     state.term_state.err_msg = String::new()
                 }
-                state.term_state.mode = Mode::Normal
+
+                state.cancel_input();
+
+                // if state.term_state.input_state.is_some() {
+                //     state.cancel_input();
+                // }
+                // state.term_state.mode = Mode::Normal
             }
             (KeyCode::Char('q'), Mode::Normal) => state.term_state.exit = true,
             (KeyCode::Char('k'), Mode::Normal) => {
@@ -105,7 +107,7 @@ impl Term {
                 state.handle_down()?;
             }
             (KeyCode::Char('i'), Mode::Normal) | (KeyCode::Char('s'), Mode::Normal) => {
-                state.new_input();
+                state.new_input(InputType::WebSearch);
             }
             (KeyCode::Char('n'), Mode::Normal) => state.term_state.tab_state.next_tab()?,
             (KeyCode::Char('p'), Mode::Normal) => state.term_state.tab_state.prev_tab()?,
@@ -167,67 +169,39 @@ impl Term {
             }
             (KeyCode::Backspace, Mode::Insert) => {
                 if let Some(input) = state.term_state.input_state.as_mut() {
-                    if input.cursor > 0 {
-                        let prev = input.value[..input.cursor]
-                            .char_indices()
-                            .last()
-                            .map(|(i, _)| i)
-                            .unwrap_or(0);
-                        input.value.drain(prev..input.cursor);
-                        input.cursor = prev;
-                    }
+                    input.backspace()?;
                 }
             }
             (KeyCode::Delete, Mode::Insert) => {
                 if let Some(input) = state.term_state.input_state.as_mut() {
-                    if input.cursor < input.value.len() {
-                        let next = input.value[input.cursor..]
-                            .char_indices()
-                            .nth(1)
-                            .map(|(i, _)| input.cursor + i)
-                            .unwrap_or(input.value.len());
-                        input.value.drain(input.cursor..next);
-                    }
+                    input.delete();
                 }
             }
             (KeyCode::Left, Mode::Insert) => {
                 if let Some(input) = state.term_state.input_state.as_mut() {
-                    if input.cursor > 0 {
-                        input.cursor = input.value[..input.cursor]
-                            .char_indices()
-                            .last()
-                            .map(|(i, _)| i)
-                            .unwrap_or(0);
-                    }
+                    input.move_left();
                 }
             }
             (KeyCode::Right, Mode::Insert) => {
                 if let Some(input) = state.term_state.input_state.as_mut() {
-                    if input.cursor < input.value.len() {
-                        input.cursor = input.value[input.cursor..]
-                            .char_indices()
-                            .nth(1)
-                            .map(|(i, _)| input.cursor + i)
-                            .unwrap_or(input.value.len());
-                    }
+                    input.move_right(state.term_state.cols as usize);
                 }
             }
             (KeyCode::Home, Mode::Insert) => {
                 if let Some(input) = state.term_state.input_state.as_mut() {
-                    input.cursor = 0;
+                    input.move_home();
                 }
             }
             (KeyCode::End, Mode::Insert) => {
                 if let Some(input) = state.term_state.input_state.as_mut() {
-                    input.cursor = input.value.len();
+                    input.move_end();
                 }
             }
 
             // insert text
             (KeyCode::Char(c), Mode::Insert) => {
                 if let Some(input) = state.term_state.input_state.as_mut() {
-                    input.value.insert(input.cursor, c);
-                    input.cursor += c.len_utf8();
+                    input.insert_char(c, state.term_state.cols as usize);
                 }
             }
             _ => {}
@@ -294,6 +268,12 @@ impl StatefulWidget for &mut Term {
                 .alignment(ratatui::layout::Alignment::Center)
                 .block(Block::new().borders(Borders::all()))
                 .render(page[0], buf);
+            }
+        }
+
+        if state.term_state.mode == Mode::Insert {
+            if let Some(inputstate) = state.term_state.input_state.as_mut() {
+                Input::new().create(area, buf, inputstate);
             }
         }
 

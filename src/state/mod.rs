@@ -6,18 +6,18 @@ use crate::{
     client::parser::ParsedPage,
     config::Configs,
     state::{
-        input::InputState,
+        input::{InputState, InputType},
         tab_state::Tab,
         term::{Mode, TermState},
         webclient_state::{SearchProvider, WebClientState},
     },
 };
 
+pub mod cursor;
 pub mod input;
 pub mod tab_state;
 pub mod term;
 pub mod webclient_state;
-pub mod cursor;
 
 #[derive(Debug, Clone)]
 pub enum TaskResult {
@@ -180,9 +180,9 @@ impl State {
     }
 
     /// main basic input field creator
-    pub fn new_input(&mut self) {
+    pub fn new_input(&mut self, input_type: InputType) {
         self.term_state.mode = Mode::Insert;
-        self.term_state.input_state = Some(InputState::new());
+        self.term_state.input_state = Some(InputState::new(input_type));
     }
 
     pub fn cancel_input(&mut self) {

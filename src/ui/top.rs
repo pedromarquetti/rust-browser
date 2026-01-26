@@ -1,7 +1,5 @@
 use anyhow::Result;
 use ratatui::prelude::*;
-use ratatui::widgets::Paragraph;
-use ratatui::widgets::Widget;
 
 use crate::state::State;
 use crate::state::term::Mode;
@@ -9,7 +7,7 @@ use crate::ui::tabs::TabWidget;
 
 #[derive(Debug, Clone)]
 /// Widget for handling the top bar
-pub struct Top {}
+pub struct Top;
 
 impl Top {
     pub fn new() -> Self {
@@ -27,22 +25,13 @@ impl StatefulWidget for &mut Top {
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         match state.term_state.mode {
-            Mode::Insert => {
-                let val = state
-                    .term_state
-                    .input_state
-                    .as_ref()
-                    .map(|i| i.value.as_str())
-                    .unwrap_or("");
-                Paragraph::new(format!(":{}", val))
-                    .render(area, buf);
-            }
             Mode::Normal => match TabWidget::new().create(area, buf, state) {
                 Ok(ok) => ok,
                 Err(err) => {
                     state.create_err(err.to_string());
                 }
             },
+            _ => {}
         }
     }
 }
