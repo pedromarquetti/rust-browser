@@ -63,16 +63,18 @@ impl Term {
 
         state.term_state.cols = frame.area().width;
 
-        if state.term_state.mode == Mode::Insert && state.term_state.tab_state.curr_tab.is_none()
-            && let Some(input) = state.term_state.input_state.as_ref() {
-                // derive screen cursor from input state
-                let prefix_len: u16 = 2; // ": "
-                let typed_len = input.value[..input.cursor.get_pos().0].chars().count() as u16;
-                let x = input.input_area.x + 1 + prefix_len + typed_len;
-                let y = input.input_area.y + 1;
+        if state.term_state.mode == Mode::Insert
+            && state.term_state.tab_state.curr_tab.is_none()
+            && let Some(input) = state.term_state.input_state.as_ref()
+        {
+            // derive screen cursor from input state
+            let prefix_len: u16 = 2; // ": "
+            let typed_len = input.value[..input.cursor.get_pos().0].chars().count() as u16;
+            let x = input.input_area.x + 1 + prefix_len + typed_len;
+            let y = input.input_area.y + 1;
 
-                frame.set_cursor_position(Position::new(x, y));
-            }
+            frame.set_cursor_position(Position::new(x, y));
+        }
     }
 
     /// main event handler
@@ -114,6 +116,7 @@ impl Term {
             (KeyCode::Char('i'), Mode::Normal) | (KeyCode::Char('s'), Mode::Normal) => {
                 state.new_input(InputType::WebSearch);
             }
+            (KeyCode::Char('/'), Mode::Normal) => state.new_input(InputType::StringSearch),
             (KeyCode::Char('n'), Mode::Normal) => state.term_state.tab_state.next_tab()?,
             (KeyCode::Char('p'), Mode::Normal) => state.term_state.tab_state.prev_tab()?,
             (KeyCode::Char('d'), Mode::Normal) => state.term_state.tab_state.del_tab()?,
@@ -275,9 +278,10 @@ impl StatefulWidget for &mut Term {
         }
 
         if state.term_state.mode == Mode::Insert
-            && let Some(inputstate) = state.term_state.input_state.as_mut() {
-                Input::new().create(area, buf, inputstate);
-            }
+            && let Some(inputstate) = state.term_state.input_state.as_mut()
+        {
+            Input::new().create(area, buf, inputstate);
+        }
 
         if state.term_state.is_err {
             ErrorTerm::new(&state.term_state.err_msg, state.term_state.scroll_idx)

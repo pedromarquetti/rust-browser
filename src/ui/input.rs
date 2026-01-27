@@ -41,16 +41,6 @@ impl StatefulWidget for &mut Input {
 
         state.input_area = popup_area;
 
-        // let prefix = " ";
-        // let prefix_len = prefix.len() as u16;
-
-        // ..input.cursor.get_pos().0 gets the last chat count in input
-        // let max_input_size = state.value[..state.cursor.get_pos().0].chars().count() as u16;
-
-        // let x = state.input_area.x + 1 + prefix_len + max_input_size;
-        // // +1 to be inside the bordered block
-        // let y = state.input_area.y + 1;
-
         let paragraph = Paragraph::new(format!(": {:}", state.value))
             
             .wrap(Wrap { trim: false })
