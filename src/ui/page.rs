@@ -1,4 +1,5 @@
 use crate::client::page_part::Part;
+use crate::client::parser::PageType;
 use crate::state::State;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Widget};
@@ -35,8 +36,8 @@ impl StatefulWidget for &mut Page {
 
             let title = Line::from(content.title.clone()).style(Style::default());
             tab.title = content.title.clone();
-            let text = format!("words: {} lines: {}", tab.wordcount, tab.linecount);
-            let details = Line::from(text).style(Style::default());
+            let wordcount = format!("words: {} lines: {}", tab.wordcount, tab.linecount);
+            let details = Line::from(wordcount).style(Style::default().fg(Color::DarkGray));
 
             let block = Block::default()
                 .borders(Borders::all())
@@ -47,7 +48,7 @@ impl StatefulWidget for &mut Page {
             let inner = block.inner(area);
             let available_width = inner.width;
             let scroll_idx: i32 = tab.scroll_idx;
-
+            
             let items: Vec<ListItem> = content
                 .parsed_content
                 .iter()

@@ -1,4 +1,4 @@
-use ratatui::{prelude::*, widgets::Clear};
+use ratatui::{prelude::*, style::Stylize, widgets::Clear};
 use reqwest::Url;
 use std::{mem::take, str::FromStr, time::Duration};
 

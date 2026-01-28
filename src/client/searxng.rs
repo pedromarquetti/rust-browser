@@ -3,7 +3,7 @@ use std::str::FromStr;
 use crate::{
     client::{
         fetcher::get_req,
-        parser::{ParsedPage, ParserTrait},
+        parser::{PageType, ParsedPage, ParserTrait},
     },
     state::webclient_state::WebClientState,
 };
@@ -60,6 +60,7 @@ impl ParserTrait for SearxngResult {
         Ok(ParsedPage {
             title: self.query.clone() + " - SearXNG",
             url: url.to_string(),
+            page_type: PageType::Search,
             parsed_content: content,
             state,
             ..Default::default()

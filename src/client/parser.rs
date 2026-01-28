@@ -18,6 +18,15 @@ pub struct ParsedPage {
     pub url: String,
     pub parsed_content: Vec<Part>,
     pub state: ListState,
+    pub page_type: PageType,
+}
+
+#[derive(Debug, Clone, Default)]
+pub enum PageType {
+    Search,
+    /// This represents a raw parsed HTML
+    #[default]
+    Raw,
 }
 
 impl FromIterator<(PartState, String, Link)> for ParsedPage {

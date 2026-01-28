@@ -1,7 +1,9 @@
 use std::str::FromStr;
 
 use anyhow::{anyhow, bail};
-use ratatui::widgets::ListState;
+use ratatui::{
+    widgets::ListState,
+};
 use reqwest::{Client, Url};
 use scraper::{ElementRef, Html, Node, Selector};
 
@@ -27,7 +29,7 @@ impl WebClientTrait for FetchUrl {
         _query: String,
         _state: &mut crate::state::webclient_state::WebClientState,
     ) -> anyhow::Result<super::parser::ParsedPage> {
-        bail!("This Mathos does not implement searching ")
+        bail!("FetchUrl does not implement searching")
     }
 
     async fn fetch_url(
@@ -119,7 +121,8 @@ impl ParserTrait for FetchUrl {
 
         let doc_title = doc
             .select(&Selector::parse("title").map_err(|err| anyhow!(err.to_string()))?)
-            .next().map(|e| e.text().collect::<String>())
+            .next()
+            .map(|e| e.text().collect::<String>())
             .unwrap_or_else(|| "Title not found".to_string());
 
         Ok(ParsedPage {

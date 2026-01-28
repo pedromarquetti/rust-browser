@@ -43,15 +43,17 @@ impl From<&Part> for ListItem<'_> {
                 let mut lines = vec![];
 
                 if let Some(title) = &value.title
-                    && !title.is_empty() {
-                        lines.push(Line::from(Span::raw(title.clone()).bold()));
-                    }
+                    && !title.is_empty()
+                {
+                    lines.push(Line::from(Span::raw(title.clone()).bold()));
+                }
 
                 // Add text content (will wrap)
                 if let Some(content) = &value.content
-                    && !content.text.is_empty() {
-                        lines.push(Line::from(content.text.clone()));
-                    }
+                    && !content.text.is_empty()
+                {
+                    lines.push(Line::from(content.text.clone()));
+                }
 
                 // Add empty line for spacing
                 lines.push(Line::from(""));
@@ -64,15 +66,17 @@ impl From<&Part> for ListItem<'_> {
 
                 // Add title if present
                 if let Some(title) = &value.title
-                    && !title.is_empty() {
-                        lines.push(Line::from(Span::raw(title.clone()).bold().blue()));
-                    }
+                    && !title.is_empty()
+                {
+                    lines.push(Line::from(Span::raw(title.clone()).bold().blue()));
+                }
 
                 // Add link text
                 if let Some(content) = &value.content
-                    && !content.text.is_empty() {
-                        lines.push(Line::from(content.text.clone()));
-                    }
+                    && !content.text.is_empty()
+                {
+                    lines.push(Line::from(content.text.clone()));
+                }
 
                 // Add URL
                 if !link.url.is_empty() {
@@ -246,14 +250,6 @@ pub struct Content {
     pub linecount: usize,
     pub wordcount: usize,
 }
-
-// impl Default for Content {
-//     fn default() -> Self {
-//         Self {
-//             ..Default::default()
-//         }
-//     }
-// }
 
 impl Content {
     pub fn new(text: String) -> Self {
