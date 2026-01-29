@@ -8,10 +8,7 @@ use reqwest::{Client, Url};
 use scraper::{ElementRef, Html, Node, Selector};
 
 use crate::client::{
-    WebClientTrait,
-    fetcher::get_req,
-    page_part::Part,
-    parser::{Link, ParsedPage, ParserTrait},
+    fetcher::get_req, page_part::Part, parser::{Link, ParsedContent, ParsedPage, ParserTrait}, WebClientTrait
 };
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -19,7 +16,7 @@ static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_P
 #[derive(Clone, PartialEq, Eq)]
 pub struct FetchUrl {
     url: Url,
-    /// Represents page content
+    /// Represents page content (HTML)
     data: String,
 }
 
@@ -34,8 +31,7 @@ impl WebClientTrait for FetchUrl {
 
     async fn fetch_url(
         &self,
-        url: Url,
-        _state: &mut crate::state::webclient_state::WebClientState,
+        url: Url
     ) -> anyhow::Result<super::parser::ParsedPage> {
         let client = Client::builder().user_agent(APP_USER_AGENT).build()?;
         let req = get_req(client, url.clone()).await?;
@@ -76,7 +72,7 @@ impl ParserTrait for FetchUrl {
                 return Ok(ParsedPage {
                     title: url.to_string(),
                     url: url.to_string(),
-                    parsed_content: vec![Part::text(self.data.clone())],
+                    parsed_content: ParsedContent::Text(self.data.clone()),
                     state,
                     ..Default::default()
                 });
@@ -128,7 +124,7 @@ impl ParserTrait for FetchUrl {
         Ok(ParsedPage {
             title: doc_title,
             url: url.to_string(),
-            parsed_content: collapsed,
+            parsed_content:ParsedContent::Text(String::from("oi")),
             state,
             ..Default::default()
         })

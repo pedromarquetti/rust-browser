@@ -1,5 +1,7 @@
+use std::clone;
+
 use crate::client::page_part::Part;
-use crate::client::parser::PageType;
+use crate::client::parser::{PageType, ParsedContent};
 use crate::state::State;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Widget};
@@ -48,44 +50,35 @@ impl StatefulWidget for &mut Page {
             let inner = block.inner(area);
             let available_width = inner.width;
             let scroll_idx: i32 = tab.scroll_idx;
-            
-            let items: Vec<ListItem> = content
-                .parsed_content
-                .iter()
-                .map(|part| {
-                    // creating List
-                    part.to_list_item(available_width)
-                })
-                .collect();
 
             block.render(area, buf);
 
             Clear.render(inner, buf);
 
-            let list = List::new(items.clone()).highlight_symbol(">");
+            match content.page_type {
+                PageType::Search => {
+                    match &content.parsed_content {
+                        ParsedContent::PartList(list) => {
+                            let items: Vec<ListItem> = list
+                                .iter()
+                                .map(|part| part.to_list_item(available_width))
+                                .collect();
+                            let list = List::new(items.clone()).highlight_symbol(">");
 
-            let [list_area] = Layout::vertical([Constraint::Fill(1)]).areas(inner);
+                            let [list_area] = Layout::vertical([Constraint::Fill(1)]).areas(inner);
+                            Clear.render(inner, buf);
+                            StatefulWidget::render(list, list_area, buf, &mut content.state);
+                        }
+                        _ => {}
+                    }
 
-            // if len == 1, it's a direct URL fetch
-            if list.len() == 1 {
-                let mut s = content.parsed_content[0]
-                    .clone()
-                    .content
-                    .unwrap_or_default();
-
-                Part::to_wrapped_string(&mut s, available_width);
-
-                tab.set_wordcount(s.wordcount);
-                tab.set_linecount(s.linecount);
-
-                Paragraph::new(s.text)
-                    // TODO: limit page scroll:
-                    // Page scroll should not be infinite, it should be limited to page height
-                    .scroll((scroll_idx as u16, 0))
-                    .render(list_area, buf);
-            } else {
-                StatefulWidget::render(list, list_area, buf, &mut content.state);
+                }
+                PageType::Raw => {
+                    Clear.render(inner, buf);
+                    Paragraph::new("oi").render(inner, buf);
+                }
             }
+
         } else {
             Clear.render(area, buf);
             Paragraph::new("Loading...")

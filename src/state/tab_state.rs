@@ -1,7 +1,10 @@
 use anyhow::{Result, anyhow};
 
 use crate::{
-    client::{page_part::Part, parser::ParsedPage},
+    client::{
+        page_part::Part,
+        parser::{ParsedContent, ParsedPage},
+    },
     state::TaskType,
 };
 
@@ -68,9 +71,10 @@ impl TabState {
     /// (scroll idx fix)
     pub fn save_tab(&mut self) {
         if let Some(tab) = &self.curr_tab
-            && let Some(stored_tab) = self.tab_list.get_mut(self.idx as usize) {
-                *stored_tab = tab.clone();
-            }
+            && let Some(stored_tab) = self.tab_list.get_mut(self.idx as usize)
+        {
+            *stored_tab = tab.clone();
+        }
     }
 
     /// get currently selected item under ListState
@@ -78,7 +82,13 @@ impl TabState {
         if let Some(tab) = &self.curr_tab {
             if let Some(page) = &tab.content {
                 let idx = page.state.selected().unwrap_or(0);
-                Ok(page.parsed_content[idx].clone())
+                match &page.parsed_content {
+                    ParsedContent::PartList(list) => {
+                        // filter list
+                        Ok(list[idx].clone())
+                    }
+                    _ => Err(anyhow!("No page!")),
+                }
             } else {
                 Err(anyhow!("No page!"))
             }
@@ -173,10 +183,11 @@ impl TabState {
             tab.is_loading = false;
 
             if self.idx == tab.id
-                && let Some(curr_tab) = &mut self.curr_tab {
-                    curr_tab.content = Some(page);
-                    curr_tab.is_loading = false;
-                }
+                && let Some(curr_tab) = &mut self.curr_tab
+            {
+                curr_tab.content = Some(page);
+                curr_tab.is_loading = false;
+            }
 
             Ok(())
         } else {

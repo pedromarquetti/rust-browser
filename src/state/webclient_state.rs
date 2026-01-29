@@ -29,7 +29,7 @@ impl SearchProvider {
 
 impl WebClientState {
     pub async fn fetch_url(&mut self, url: Url, tab_id: i32) -> Result<()> {
-        let page = FetchUrl::default().fetch_url(url.clone(), self).await?;
+        let page = FetchUrl::default().fetch_url(url.clone()).await?;
 
         self.is_loading = false;
         self.curr_page = page;

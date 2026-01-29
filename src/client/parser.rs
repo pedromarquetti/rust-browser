@@ -16,9 +16,22 @@ pub struct ParsedPage {
     pub tab_id: i32,
     pub title: String,
     pub url: String,
-    pub parsed_content: Vec<Part>,
+    // pub parsed_content: Vec<Part>,
+    pub parsed_content: ParsedContent,
     pub state: ListState,
     pub page_type: PageType,
+}
+
+#[derive(Debug, Clone)]
+pub enum ParsedContent {
+    PartList(Vec<Part>),
+    Text(String),
+}
+
+impl Default for ParsedContent {
+    fn default() -> Self {
+        Self::Text("".to_string())
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -42,7 +55,8 @@ impl FromIterator<(PartState, String, Link)> for ParsedPage {
         let state = ListState::default();
 
         Self {
-            parsed_content: items,
+            // parsed_content: items,
+            parsed_content: ParsedContent::PartList(items),
             state,
             ..Default::default()
         }

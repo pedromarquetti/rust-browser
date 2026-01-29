@@ -61,7 +61,7 @@ impl ParserTrait for SearxngResult {
             title: self.query.clone() + " - SearXNG",
             url: url.to_string(),
             page_type: PageType::Search,
-            parsed_content: content,
+            parsed_content: crate::client::parser::ParsedContent::PartList(content),
             state,
             ..Default::default()
         })
@@ -116,11 +116,7 @@ impl WebClientTrait for SearxngResult {
         req.to_parsed_page(url)
     }
 
-    async fn fetch_url(
-        &self,
-        _url: Url,
-        _state: &mut WebClientState,
-    ) -> anyhow::Result<ParsedPage> {
+    async fn fetch_url(&self, _url: Url) -> anyhow::Result<ParsedPage> {
         bail!("This provider does not implement direct url!")
     }
 }
