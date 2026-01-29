@@ -49,7 +49,6 @@ impl WebClientTrait for FetchUrl {
 
 impl ParserTrait for FetchUrl {
     fn to_parsed_page(&self, url: Url) -> anyhow::Result<super::parser::ParsedPage> {
-        let parts: Vec<Part> = vec![];
         let mut page_str: String = String::new().to_owned();
 
         let doc = Html::parse_document(&self.data);
@@ -82,38 +81,26 @@ impl ParserTrait for FetchUrl {
         walk(&mut page_str, root, &url);
 
         // Post-process: collapse consecutive empty text parts
-        let mut collapsed: Vec<Part> = Vec::with_capacity(parts.len());
-        let mut last_empty = false;
 
-        for p in parts.into_iter() {
-            // Very simple check: if it's a text Part with empty text, skip duplicates
-            let is_empty_text = matches!(
-                // crude inspection via Debug strings isn't ideal; rely on Part::text("") we created
-                // Better: add getters in Part, but keep minimal changes
-                &p,
-                Part { .. } if format!("{:?}", &p).contains("text: Some(\"\"")
-            );
-            if is_empty_text {
-                if !last_empty {
-                    collapsed.push(p);
-                }
-                last_empty = true;
-            } else {
-                collapsed.push(p);
-                last_empty = false;
-            }
-        }
+        // for p in parts.into_iter() {
+        //     // Very simple check: if it's a text Part with empty text, skip duplicates
+        //     let is_empty_text = matches!(
+        //         // crude inspection via Debug strings isn't ideal; rely on Part::text("") we created
+        //         // Better: add getters in Part, but keep minimal changes
+        //         &p,
+        //         Part { .. } if format!("{:?}", &p).contains("text: Some(\"\"")
+        //     );
+        //     if is_empty_text {
+        //         if !last_empty {
+        //             collapsed.push(p);
+        //         }
+        //         last_empty = true;
+        //     } else {
+        //         collapsed.push(p);
+        //         last_empty = false;
+        //     }
+        // }
 
-        collapsed.push(Part::text(page_str));
-
-        // Ensure we have at least one item
-        if collapsed.is_empty() {
-            collapsed.push(Part::text(self.data.clone()));
-        }
-
-        // Initialize list state
-        let mut state = ListState::default();
-        state.select(Some(0));
 
         let doc_title = doc
             .select(&Selector::parse("title").map_err(|err| anyhow!(err.to_string()))?)
@@ -124,8 +111,7 @@ impl ParserTrait for FetchUrl {
         Ok(ParsedPage {
             title: doc_title,
             url: url.to_string(),
-            parsed_content:ParsedContent::Text(String::from("oi")),
-            state,
+            parsed_content:ParsedContent::Text(page_str),
             ..Default::default()
         })
     }

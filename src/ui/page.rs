@@ -4,7 +4,7 @@ use crate::client::page_part::Part;
 use crate::client::parser::{PageType, ParsedContent};
 use crate::state::State;
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Widget};
+use ratatui::widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Widget, Wrap};
 
 #[derive(Debug, Default)]
 pub struct Page {
@@ -56,29 +56,33 @@ impl StatefulWidget for &mut Page {
             Clear.render(inner, buf);
 
             match content.page_type {
-                PageType::Search => {
-                    match &content.parsed_content {
-                        ParsedContent::PartList(list) => {
-                            let items: Vec<ListItem> = list
-                                .iter()
-                                .map(|part| part.to_list_item(available_width))
-                                .collect();
-                            let list = List::new(items.clone()).highlight_symbol(">");
+                PageType::Search => match &content.parsed_content {
+                    ParsedContent::PartList(list) => {
+                        let items: Vec<ListItem> = list
+                            .iter()
+                            .map(|part| part.to_list_item(available_width))
+                            .collect();
+                        let list = List::new(items.clone()).highlight_symbol(">");
 
-                            let [list_area] = Layout::vertical([Constraint::Fill(1)]).areas(inner);
-                            Clear.render(inner, buf);
-                            StatefulWidget::render(list, list_area, buf, &mut content.state);
+                        let [list_area] = Layout::vertical([Constraint::Fill(1)]).areas(inner);
+                        Clear.render(inner, buf);
+                        StatefulWidget::render(list, list_area, buf, &mut content.state);
+                    }
+                    _ => {}
+                },
+                PageType::Raw => {
+                    Clear.render(inner, buf);
+                    match &content.parsed_content {
+                        ParsedContent::Text(text) => {
+                            Paragraph::new(text.clone())
+                                .scroll((scroll_idx as u16, 0))
+                                .wrap(Wrap { trim: false })
+                                .render(inner, buf);
                         }
                         _ => {}
                     }
-
-                }
-                PageType::Raw => {
-                    Clear.render(inner, buf);
-                    Paragraph::new("oi").render(inner, buf);
                 }
             }
-
         } else {
             Clear.render(area, buf);
             Paragraph::new("Loading...")

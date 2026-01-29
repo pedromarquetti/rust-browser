@@ -1,9 +1,15 @@
-use ratatui::{prelude::*, style::Stylize, widgets::Clear};
+use ratatui::{
+    prelude::*,
+    style::{Styled, Stylize},
+    widgets::Clear,
+};
 use reqwest::Url;
 use std::{mem::take, str::FromStr, time::Duration};
 
 use anyhow::{Context, Result};
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
+use crossterm::{
+    event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
+};
 use ratatui::{
     DefaultTerminal, Frame,
     layout::{Constraint, Direction, Layout},
@@ -262,19 +268,26 @@ impl StatefulWidget for &mut Term {
             };
             p.create(page[0], buf, state);
         } else if state.term_state.input_state.is_none() {
-            Paragraph::new(
-                "Welcome to my simple Terminal Broswer".to_string()
-                    + "\n\n"
-                    + "Esc -> Normal mode\n"
-                    + "In normal mode: \t\n"
-                    + "t -> New Tab\t\n"
-                    + "n -> next tab\t\n"
-                    + "p -> prev. tab\t\n"
-                    + "d -> delete tab\t\n",
-            )
-            .alignment(ratatui::layout::Alignment::Center)
-            .block(Block::new().borders(Borders::all()))
-            .render(page[0], buf);
+
+            let mut t = Text::from("");
+            t.push_line(String::from("oi").bold());
+            t.push_span("como vai".italic().italic());
+            t.push_line("");
+            t.push_span("oi".fg(Color::DarkGray));
+            Paragraph::new(t)
+                // Paragraph::new(
+                //     "Welcome to my simple Terminal Broswer".to_string()
+                //         + "\n\n"
+                //         + "Esc -> Normal mode\n"
+                //         + "In normal mode: \t\n"
+                //         + "t -> New Tab\t\n"
+                //         + "n -> next tab\t\n"
+                //         + "p -> prev. tab\t\n"
+                //         + "d -> delete tab\t\n",
+                // )
+                // .alignment(ratatui::layout::Alignment::Center)
+                .block(Block::new().borders(Borders::all()))
+                .render(page[0], buf);
         }
 
         if state.term_state.mode == Mode::Insert
