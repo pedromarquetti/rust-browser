@@ -1,6 +1,3 @@
-use std::clone;
-
-use crate::client::page_part::Part;
 use crate::client::parser::{PageType, ParsedContent};
 use crate::state::State;
 use ratatui::prelude::*;
@@ -74,6 +71,8 @@ impl StatefulWidget for &mut Page {
                     Clear.render(inner, buf);
                     match &content.parsed_content {
                         ParsedContent::Text(text) => {
+                            // BUG:: leftover text on scroll happening even with Clear
+                            Clear.render(inner, buf);
                             Paragraph::new(text.clone())
                                 .scroll((scroll_idx as u16, 0))
                                 .wrap(Wrap { trim: false })

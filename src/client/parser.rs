@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use anyhow::Result;
-use ratatui::widgets::ListState;
+use ratatui::{text::Text, widgets::ListState};
 use reqwest::Url;
 
 use crate::client::page_part::{Part, PartState};
@@ -18,6 +18,7 @@ pub struct ParsedPage {
     pub url: String,
     // pub parsed_content: Vec<Part>,
     pub parsed_content: ParsedContent,
+    pub raw_text: String,
     pub state: ListState,
     pub page_type: PageType,
 }
@@ -25,12 +26,12 @@ pub struct ParsedPage {
 #[derive(Debug, Clone)]
 pub enum ParsedContent {
     PartList(Vec<Part>),
-    Text(String),
+    Text(Text<'static>),
 }
 
 impl Default for ParsedContent {
     fn default() -> Self {
-        Self::Text("".to_string())
+        Self::Text(Text::from(""))
     }
 }
 

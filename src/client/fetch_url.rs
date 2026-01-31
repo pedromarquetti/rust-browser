@@ -1,14 +1,14 @@
-use std::str::FromStr;
+use std::{fmt::Display, str::FromStr};
 
 use anyhow::{anyhow, bail};
-use ratatui::{
-    widgets::ListState,
-};
+use ratatui::{style::Stylize, text::Text, widgets::ListState};
 use reqwest::{Client, Url};
 use scraper::{ElementRef, Html, Node, Selector};
 
 use crate::client::{
-    fetcher::get_req, page_part::Part, parser::{Link, ParsedContent, ParsedPage, ParserTrait}, WebClientTrait
+    WebClientTrait,
+    fetcher::get_req,
+    parser::{ParsedContent, ParsedPage, ParserTrait},
 };
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -29,10 +29,7 @@ impl WebClientTrait for FetchUrl {
         bail!("FetchUrl does not implement searching")
     }
 
-    async fn fetch_url(
-        &self,
-        url: Url
-    ) -> anyhow::Result<super::parser::ParsedPage> {
+    async fn fetch_url(&self, url: Url) -> anyhow::Result<super::parser::ParsedPage> {
         let client = Client::builder().user_agent(APP_USER_AGENT).build()?;
         let req = get_req(client, url.clone()).await?;
 
@@ -49,7 +46,8 @@ impl WebClientTrait for FetchUrl {
 
 impl ParserTrait for FetchUrl {
     fn to_parsed_page(&self, url: Url) -> anyhow::Result<super::parser::ParsedPage> {
-        let mut page_str: String = String::new().to_owned();
+        // let mut page_str: String = String::new().to_owned();
+        let mut page_str: Text = Text::from("");
 
         let doc = Html::parse_document(&self.data);
 
@@ -71,7 +69,7 @@ impl ParserTrait for FetchUrl {
                 return Ok(ParsedPage {
                     title: url.to_string(),
                     url: url.to_string(),
-                    parsed_content: ParsedContent::Text(self.data.clone()),
+                    parsed_content: ParsedContent::Text(Text::from(self.data.clone())),
                     state,
                     ..Default::default()
                 });
@@ -79,28 +77,6 @@ impl ParserTrait for FetchUrl {
         };
 
         walk(&mut page_str, root, &url);
-
-        // Post-process: collapse consecutive empty text parts
-
-        // for p in parts.into_iter() {
-        //     // Very simple check: if it's a text Part with empty text, skip duplicates
-        //     let is_empty_text = matches!(
-        //         // crude inspection via Debug strings isn't ideal; rely on Part::text("") we created
-        //         // Better: add getters in Part, but keep minimal changes
-        //         &p,
-        //         Part { .. } if format!("{:?}", &p).contains("text: Some(\"\"")
-        //     );
-        //     if is_empty_text {
-        //         if !last_empty {
-        //             collapsed.push(p);
-        //         }
-        //         last_empty = true;
-        //     } else {
-        //         collapsed.push(p);
-        //         last_empty = false;
-        //     }
-        // }
-
 
         let doc_title = doc
             .select(&Selector::parse("title").map_err(|err| anyhow!(err.to_string()))?)
@@ -111,7 +87,8 @@ impl ParserTrait for FetchUrl {
         Ok(ParsedPage {
             title: doc_title,
             url: url.to_string(),
-            parsed_content:ParsedContent::Text(page_str),
+            // parsed_content: ParsedContent::Text(page_str),
+            parsed_content: ParsedContent::Text(page_str),
             ..Default::default()
         })
     }
@@ -127,87 +104,65 @@ impl Default for FetchUrl {
     }
 }
 
-fn push_non_empty_text(parts: &mut String, s: &str) {
-    let text = s.trim();
-    if !text.is_empty() {
-        parts.push_str(text);
-        parts.push(' ');
-        // newline(parts);
-    }
-}
-
-fn walk(parts: &mut String, el: ElementRef, base_url: &Url) {
+fn walk(parts: &mut Text, el: ElementRef, base_url: &Url) {
     let name = el.value().name();
     if is_skippable(name) {
         return;
     }
 
-    // For block separators, add spacing to improve readability
-    let is_block = matches!(
-        name,
-        "p" | "div" | "section" | "article" | "main" | "header" | "footer" | "li" | "ul" | "ol"
-    );
-
-    // If this is an <a>, capture it as a link Part first (in order)
-    if name == "a" {
-        // Visible text of the link
-        let link_text = el.text().collect::<Vec<_>>().join(" ").trim().to_string();
-
-        if let Some(href) = el.value().attr("href") {
-            let resolved = base_url.join(href).unwrap_or_else(|_| base_url.clone());
-            // TODO: make url rendering better
-            let link = Link {
-                title: link_text.clone(),
-                text: link_text,
-                url: resolved.to_string(),
-            };
-            parts.push_str(&link.text);
-            parts.push(' ');
-            // newline(parts);
-        } else {
-            // No href, treat as text
-            let text = el.text().collect::<Vec<_>>().join(" ");
-            push_non_empty_text(parts, &text);
+    match name {
+        "div" | "p" | "section" | "article" | "main" | "header" | "footer" | "li" | "ul" | "ol" => {
+            push_newline(parts);
+            iter_items(parts, el, base_url);
         }
-    } else if name == "p" {
-        // TODO: make paragraph separation better here
-        for child in el.children() {
-            match child.value() {
-                Node::Text(t) => {
-                    push_non_empty_text(parts, t);
-                    newline(parts);
-                }
-                Node::Element(_) => {
-                    // Recurse into child elements
-                    if let Some(child_ref) = ElementRef::wrap(child) {
-                        walk(parts, child_ref, base_url);
-                    }
-                }
-                _ => {}
-            }
+        "h1" | "h2" | "h3" => {
+            push_newline(parts);
+            iter_items(parts, el, base_url);
         }
-    } else {
-        // For other elements, gather direct text nodes first to preserve flow
-        // Collect only text nodes that are immediate children (to avoid double-capturing)
-        for child in el.children() {
-            match child.value() {
-                Node::Text(t) => {
-                    push_non_empty_text(parts, t);
-                }
-                Node::Element(_) => {
-                    // Recurse into child elements
-                    if let Some(child_ref) = ElementRef::wrap(child) {
-                        walk(parts, child_ref, base_url);
-                    }
-                }
-                _ => {}
-            }
+        "a" => {
+            handle_links(parts, el, base_url);
+        }
+        _ => {
+            iter_items(parts, el, base_url);
         }
     }
+}
 
-    if is_block {
-        // Add a small separator between blocks to keep reading flow
-        parts.push_str("");
+fn handle_links(parts: &mut Text, el: ElementRef, base_url: &Url) {
+    // Visible text of the link
+    let link_text = el.text().collect::<Vec<_>>().join(" ").trim().to_string();
+    push_italic(parts, link_text + "(link)");
+
+    if let Some(href) = el.value().attr("href") {
+        // TODO: links make the page unreadable. Make this readable
+        // this block would render link inside href
+        let _resolved = base_url.join(href).unwrap_or_else(|_| base_url.clone());
+        // push_italic(parts, format!("({})",resolved));
+    } else {
+        // No href, treat as text
+        let text = el.text().collect::<Vec<_>>().join(" ");
+        push_non_empty_text(parts, text);
+    }
+}
+
+fn iter_items(parts: &mut Text, el: ElementRef, base_url: &Url) {
+    let name = el.value().name();
+    for child in el.children() {
+        match child.value() {
+            Node::Text(t) => match name {
+                "b" => push_bold(parts, t.to_string()),
+                "i" => push_italic(parts, t.to_string()),
+                "h1" | "h2" | "h3" => push_underline_bold(parts, t.to_string()),
+                _ => push_non_empty_text(parts, t.to_string()),
+            },
+            Node::Element(_) => {
+                // Recurse into child elements
+                if let Some(child_ref) = ElementRef::wrap(child) {
+                    walk(parts, child_ref, base_url);
+                }
+            }
+            _ => {}
+        }
     }
 }
 
@@ -219,6 +174,51 @@ fn is_skippable(name: &str) -> bool {
     )
 }
 
-fn newline(str: &mut String) {
-    str.push('\n');
+fn push_newline(parts: &mut Text) {
+    parts.push_line("");
+}
+
+fn push_non_empty_text<S>(parts: &mut Text, s: S)
+where
+    S: Display + ToString,
+{
+    let text = s.to_string();
+    if !text.trim().is_empty() {
+        parts.push_span(text);
+        parts.push_span(" ");
+    } else {
+        parts.push_span(" ");
+    }
+}
+
+fn push_underline_bold<S>(parts: &mut Text, s: S)
+where
+    S: Display + ToString,
+{
+    parts.push_span(String::from(s.to_string()).underlined().bold());
+    parts.push_span(" ");
+}
+
+// fn push_underline<S>(parts: &mut Text, s: S)
+// where
+//     S: Display + ToString,
+// {
+//     parts.push_span(String::from(s.to_string()).underlined());
+//     parts.push_span(" ");
+// }
+
+fn push_italic<S>(parts: &mut Text, s: S)
+where
+    S: Display + ToString,
+{
+    parts.push_span(String::from(s.to_string()).italic());
+    parts.push_span(" ");
+}
+
+fn push_bold<S>(parts: &mut Text, s: S)
+where
+    S: Display + ToString,
+{
+    parts.push_span(String::from(s.to_string()).bold());
+    parts.push_span(" ");
 }

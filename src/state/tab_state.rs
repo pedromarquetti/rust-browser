@@ -59,7 +59,7 @@ impl Default for Tab {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct TabState {
+pub struct TabState  {
     pub tab_list: Vec<Tab>,
     /// current tab index
     pub idx: i32,

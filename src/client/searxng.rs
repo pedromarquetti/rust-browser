@@ -5,7 +5,6 @@ use crate::{
         fetcher::get_req,
         parser::{PageType, ParsedPage, ParserTrait},
     },
-    state::webclient_state::WebClientState,
 };
 
 use anyhow::{Context, anyhow, bail};

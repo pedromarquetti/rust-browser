@@ -1,19 +1,11 @@
 use std::fmt::Display;
 
-use reqwest::IntoUrl;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct WebClientConfig {
     pub search_url: String,
     pub provider: AvailableSearchEngines,
-}
-
-impl WebClientConfig {
-    pub fn new<U: IntoUrl>(u: U) -> Self {
-        u.into_url().is_ok();
-        todo!()
-    }
 }
 
 #[derive(Debug, Copy, Default, Clone, Serialize, Deserialize)]
