@@ -1,15 +1,9 @@
-use ratatui::{
-    prelude::*,
-    style::{Styled, Stylize},
-    widgets::Clear,
-};
+use ratatui::{prelude::*, style::Stylize, widgets::Clear};
 use reqwest::Url;
 use std::{mem::take, str::FromStr, time::Duration};
 
 use anyhow::{Context, Result};
-use crossterm::{
-    event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
-};
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
     DefaultTerminal, Frame,
     layout::{Constraint, Direction, Layout},
@@ -268,12 +262,11 @@ impl StatefulWidget for &mut Term {
             };
             p.create(page[0], buf, state);
         } else if state.term_state.input_state.is_none() {
-
             let mut t = Text::from("");
-            t.push_line(String::from("oi").bold());
             t.push_span("como vai".italic().italic());
-            t.push_line("");
+            t.push_span(String::from("bold").bold());
             t.push_span("oi".fg(Color::DarkGray));
+            t.push_span(String::from("bold2").bold());
             Paragraph::new(t)
                 // Paragraph::new(
                 //     "Welcome to my simple Terminal Broswer".to_string()

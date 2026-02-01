@@ -1,4 +1,4 @@
-use std::{fmt::Display, str::FromStr};
+use std::{fmt::Display, fs, str::FromStr};
 
 use anyhow::{anyhow, bail};
 use ratatui::{style::Stylize, text::Text, widgets::ListState};
@@ -53,9 +53,19 @@ impl ParserTrait for FetchUrl {
 
         let main_sel =
             Selector::parse("main, article, body").map_err(|e| anyhow!(e.to_string()))?;
-        let start_nodes: Vec<ElementRef> = doc.select(&main_sel).collect();
 
-        let root = if let Some(el) = start_nodes.first() {
+        let visible: Vec<ElementRef> = doc
+            .select(&main_sel)
+            .filter(|node| {
+                let style = node.value().attr("style").unwrap_or("");
+                !style.contains("display: none") && !style.contains("visibility: hidden")
+            })
+            .collect();
+
+        // let start_nodes: Vec<ElementRef> = doc.select(&main_sel).collect();
+
+        // let root = if let Some(el) = start_nodes.first() {
+        let root = if let Some(el) = visible.first() {
             *el
         } else {
             // Fallback to document root as ElementRef by selecting html tag if present
@@ -87,7 +97,7 @@ impl ParserTrait for FetchUrl {
         Ok(ParsedPage {
             title: doc_title,
             url: url.to_string(),
-            // parsed_content: ParsedContent::Text(page_str),
+            // parsed_content: ParsedContent::Text(format!("{:#?}", page_str.style).into()),
             parsed_content: ParsedContent::Text(page_str),
             ..Default::default()
         })
@@ -104,17 +114,25 @@ impl Default for FetchUrl {
     }
 }
 
+/// main recursive func. to handle element/page rendering
 fn walk(parts: &mut Text, el: ElementRef, base_url: &Url) {
     let name = el.value().name();
-    if is_skippable(name) {
+
+    if is_skippable(name) || should_skip(&el) {
         return;
     }
 
     match name {
-        "div" | "p" | "section" | "article" | "main" | "header" | "footer" | "li" | "ul" | "ol" => {
+        "p" | "section" | "article" | "main" | "div" => {
             push_newline(parts);
             iter_items(parts, el, base_url);
         }
+        "ul" | "ol" => {
+            let is_ol = name == "ol";
+            handle_list(parts, el, base_url, is_ol)
+        }
+        "li" => render_list_item(parts, el, base_url, None),
+
         "h1" | "h2" | "h3" => {
             push_newline(parts);
             iter_items(parts, el, base_url);
@@ -124,6 +142,115 @@ fn walk(parts: &mut Text, el: ElementRef, base_url: &Url) {
         }
         _ => {
             iter_items(parts, el, base_url);
+        }
+    }
+}
+
+//INFO: this was AI generated because i'm lazy, i'll have to check if this is  ok
+fn handle_list(parts: &mut Text, el: ElementRef, base_url: &Url, ordered: bool) {
+    let title = el
+        .value()
+        .attr("aria-label")
+        .map(|s| s.to_string())
+        .or_else(|| el.value().attr("title").map(|s| s.to_string()))
+        .or_else(|| {
+            // Find first non-li child that is likely a title
+            el.children().find_map(|child| {
+                if let Some(child_ref) = ElementRef::wrap(child) {
+                    let name = child_ref.value().name();
+                    if matches!(name, "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "p") {
+                        let t = child_ref
+                            .text()
+                            .collect::<Vec<_>>()
+                            .join(" ")
+                            .trim()
+                            .to_string();
+                        if !t.is_empty() {
+                            return Some(t);
+                        }
+                    }
+                }
+                None
+            })
+        });
+
+    // If title present, render it bold and add spacing
+    if let Some(t) = title {
+        push_bold(parts, t);
+        push_newline(parts);
+    }
+
+    // Render each list item
+    let mut index = 1;
+    for child in el.children() {
+        if let Some(child_ref) = ElementRef::wrap(child) {
+            if child_ref.value().name() == "li" {
+                let bullet = if ordered {
+                    Some(format!("{}. ", index))
+                } else {
+                    Some("• ".to_string())
+                };
+                render_list_item(parts, child_ref, base_url, bullet.as_deref());
+                index += 1;
+            }
+        }
+    }
+
+    // Add a blank line after the list for visual separation
+    push_newline(parts);
+}
+
+//INFO: this was AI generated because i'm lazy, i'll have to check if this is  ok
+fn render_list_item(parts: &mut Text, li: ElementRef, base_url: &Url, bullet: Option<&str>) {
+    push_newline(parts);
+    // Prefix with bullet/number if provided
+    if let Some(b) = bullet {
+        push_non_empty_text(parts, b);
+    }
+
+    // Collect all descendant text nodes, respecting simple inline formatting
+    flatten_and_render(parts, li, base_url);
+
+    // End the list item with a newline
+    push_newline(parts);
+}
+
+//INFO: this was AI generated because i'm lazy, i'll have to check if this is  ok
+fn flatten_and_render(parts: &mut Text, el: ElementRef, base_url: &Url) {
+    for child in el.children() {
+        match child.value() {
+            Node::Text(t) => {
+                let s = t.to_string();
+                push_non_empty_text(parts, s);
+            }
+            Node::Element(_) => {
+                if let Some(child_ref) = ElementRef::wrap(child) {
+                    let name = child_ref.value().name();
+                    match name {
+                        "b" | "strong" => {
+                            let s = child_ref.text().collect::<Vec<_>>().join(" ");
+                            push_bold(parts, s);
+                        }
+                        "i" | "em" => {
+                            let s = child_ref.text().collect::<Vec<_>>().join(" ");
+                            push_italic(parts, s);
+                        }
+                        "a" => {
+                            // Reuse existing link handler
+                            handle_links(parts, child_ref, base_url);
+                        }
+                        // Nested lists inside items: render recursively
+                        "ul" | "ol" => {
+                            handle_list(parts, child_ref, base_url, name == "ol");
+                        }
+                        _ => {
+                            // Recurse for other inline/flow content
+                            flatten_and_render(parts, child_ref, base_url);
+                        }
+                    }
+                }
+            }
+            _ => {}
         }
     }
 }
@@ -145,12 +272,42 @@ fn handle_links(parts: &mut Text, el: ElementRef, base_url: &Url) {
     }
 }
 
+fn should_skip(el: &ElementRef) -> bool {
+    if el.value().attr("hidden").is_some() {
+        return true;
+    }
+
+    if let Some(class) = el.value().attr("class") {
+        if class.contains("aria-hidden=\"true\"") {
+            // ignore aria-hidden
+            return true;
+        }
+        if class.contains("dropdown") {
+            // ignore dropdowns
+            return true;
+        }
+    }
+
+    if let Some(style) = el.value().attr("style") {
+        if style.contains("display: none") || style.contains("visibility: hidden") {
+            return true;
+        }
+    }
+    false
+}
+
+/// main fn for filtering how tags are rendered
 fn iter_items(parts: &mut Text, el: ElementRef, base_url: &Url) {
     let name = el.value().name();
+
+    if is_skippable(name) || should_skip(&el) {
+        return;
+    }
+
     for child in el.children() {
         match child.value() {
             Node::Text(t) => match name {
-                "b" => push_bold(parts, t.to_string()),
+                "b" | "strong" => push_bold(parts, t.to_string()),
                 "i" => push_italic(parts, t.to_string()),
                 "h1" | "h2" | "h3" => push_underline_bold(parts, t.to_string()),
                 _ => push_non_empty_text(parts, t.to_string()),
@@ -170,7 +327,16 @@ fn iter_items(parts: &mut Text, el: ElementRef, base_url: &Url) {
 fn is_skippable(name: &str) -> bool {
     matches!(
         name,
-        "script" | "style" | "noscript" | "template" | "svg" | "canvas" | "iframe"
+        "script"
+            | "style"
+            | "noscript"
+            | "template"
+            | "svg"
+            | "canvas"
+            | "iframe"
+            | "input"
+            | "nav"
+            | "label"
     )
 }
 
