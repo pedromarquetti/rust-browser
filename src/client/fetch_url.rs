@@ -116,6 +116,7 @@ impl Default for FetchUrl {
 
 /// main recursive func. to handle element/page rendering
 fn walk(parts: &mut Text, el: ElementRef, base_url: &Url) {
+    // TODO: ignore non-text empty divs (currently, pages and being rendered with a bunch of new lines)
     let name = el.value().name();
 
     if is_skippable(name) || should_skip(&el) {

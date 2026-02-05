@@ -265,22 +265,21 @@ impl StatefulWidget for &mut Term {
             p.create(page[0], buf, state);
         } else if state.term_state.input_state.is_none() {
             let mut t = Text::from("");
-            t.push_span("como vai".italic().italic());
-            t.push_span(String::from("bold").bold());
-            t.push_span("oi".fg(Color::DarkGray));
-            t.push_span(String::from("bold2").bold());
+            t.push_line("Welcome to my simple Terminal Broswer".bold());
+            t.push_line("Esc -> Normal mode");
+            t.push_line("");
+            t.push_line("In normal mode: ".bold());
+            t.push_line("n -> next tab");
+            t.push_line("p -> prev. tab");
+            t.push_line("s -> search the web");
+            t.push_line("j/k -> scroll");
+            t.push_line("d -> delete tab");
+            t.push_line("q -> Quit App");
+            t.push_line("Enter -> Open link in default OS browser");
+            t.push_line("o -> Open link in this app");
+
             Paragraph::new(t)
-                // Paragraph::new(
-                //     "Welcome to my simple Terminal Broswer".to_string()
-                //         + "\n\n"
-                //         + "Esc -> Normal mode\n"
-                //         + "In normal mode: \t\n"
-                //         + "t -> New Tab\t\n"
-                //         + "n -> next tab\t\n"
-                //         + "p -> prev. tab\t\n"
-                //         + "d -> delete tab\t\n",
-                // )
-                // .alignment(ratatui::layout::Alignment::Center)
+                .alignment(ratatui::layout::Alignment::Center)
                 .block(Block::new().borders(Borders::all()))
                 .render(page[0], buf);
         }
