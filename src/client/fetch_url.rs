@@ -1,4 +1,4 @@
-use std::{fmt::Display, fs, str::FromStr};
+use std::{fmt::Display, str::FromStr};
 
 use anyhow::{anyhow, bail};
 use ratatui::{style::Stylize, text::Text, widgets::ListState};
@@ -131,11 +131,13 @@ fn walk(parts: &mut Text, el: ElementRef, base_url: &Url) {
             let is_ol = name == "ol";
             handle_list(parts, el, base_url, is_ol)
         }
-        "li" => render_list_item(parts, el, base_url, None),
-
+        "table" | "tbody" => {}
         "h1" | "h2" | "h3" => {
             push_newline(parts);
             iter_items(parts, el, base_url);
+        }
+        "img" => {
+            push_non_empty_text(parts, "Image");
         }
         "a" => {
             handle_links(parts, el, base_url);
@@ -178,6 +180,8 @@ fn handle_list(parts: &mut Text, el: ElementRef, base_url: &Url, ordered: bool) 
     if let Some(t) = title {
         push_bold(parts, t);
         push_newline(parts);
+    } else {
+        push_newline(parts);
     }
 
     // Render each list item
@@ -209,56 +213,20 @@ fn render_list_item(parts: &mut Text, li: ElementRef, base_url: &Url, bullet: Op
     }
 
     // Collect all descendant text nodes, respecting simple inline formatting
-    flatten_and_render(parts, li, base_url);
+    iter_items(parts, li, base_url);
 
     // End the list item with a newline
     push_newline(parts);
-}
-
-//INFO: this was AI generated because i'm lazy, i'll have to check if this is  ok
-fn flatten_and_render(parts: &mut Text, el: ElementRef, base_url: &Url) {
-    for child in el.children() {
-        match child.value() {
-            Node::Text(t) => {
-                let s = t.to_string();
-                push_non_empty_text(parts, s);
-            }
-            Node::Element(_) => {
-                if let Some(child_ref) = ElementRef::wrap(child) {
-                    let name = child_ref.value().name();
-                    match name {
-                        "b" | "strong" => {
-                            let s = child_ref.text().collect::<Vec<_>>().join(" ");
-                            push_bold(parts, s);
-                        }
-                        "i" | "em" => {
-                            let s = child_ref.text().collect::<Vec<_>>().join(" ");
-                            push_italic(parts, s);
-                        }
-                        "a" => {
-                            // Reuse existing link handler
-                            handle_links(parts, child_ref, base_url);
-                        }
-                        // Nested lists inside items: render recursively
-                        "ul" | "ol" => {
-                            handle_list(parts, child_ref, base_url, name == "ol");
-                        }
-                        _ => {
-                            // Recurse for other inline/flow content
-                            flatten_and_render(parts, child_ref, base_url);
-                        }
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
 }
 
 fn handle_links(parts: &mut Text, el: ElementRef, base_url: &Url) {
     // Visible text of the link
     let link_text = el.text().collect::<Vec<_>>().join(" ").trim().to_string();
     push_italic(parts, link_text + "(link)");
+
+    if el.has_children() {
+        iter_items(parts, el, base_url);
+    }
 
     if let Some(href) = el.value().attr("href") {
         // TODO: links make the page unreadable. Make this readable
