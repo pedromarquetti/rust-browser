@@ -69,6 +69,8 @@ impl Term {
         {
             // derive screen cursor from input state
             let prefix_len: u16 = 2; // ": "
+            // BUG: this breaks if the user inserts non 1byte long character, will fix this in
+            // the future
             let typed_len = input.value[..input.cursor.get_pos().0].chars().count() as u16;
             let x = input.input_area.x + 1 + prefix_len + typed_len;
             let y = input.input_area.y + 1;
