@@ -118,21 +118,19 @@ impl Term {
             (KeyCode::Char('d'), Mode::Normal) => state.term_state.tab_state.del_tab()?,
             (KeyCode::Char('o'), Mode::Normal) => {
                 // current selected item by cursor
-                let curr_item = state.term_state.tab_state.get_selected_item()?;
-
-                if curr_item.link.is_some() {
-                    let url = Url::from_str(&curr_item.link.unwrap_or_default().url)?;
-                    state.go_to_url(url)?;
+                if let Ok(item) = state.term_state.tab_state.get_selected_item() {
+                    if item.link.is_some() {
+                        let url = Url::from_str(&item.link.unwrap_or_default().url)?;
+                        state.go_to_url(url)?;
+                    }
                 }
             }
             // open in default browser
             (KeyCode::Enter, Mode::Normal) => {
-                let curr_item = state.term_state.tab_state.get_selected_item()?;
-
-                if curr_item.link.is_some() {
-                    // TODO: make this open the link in a new tab
-                    // currently this will open in the current browser
-                    open::that_detached(curr_item.link.unwrap_or_default().url)?;
+                if let Ok(curr_item) = state.term_state.tab_state.get_selected_item() {
+                    if curr_item.link.is_some() {
+                        open::that_detached(curr_item.link.unwrap_or_default().url)?;
+                    }
                 }
             }
             (KeyCode::Enter, Mode::Insert) => {
