@@ -88,6 +88,8 @@ impl ParserTrait for FetchUrl {
 
         walk(&mut page_str, root, &url);
 
+        let raw_str = page_str.to_string();
+
         let doc_title = doc
             .select(&Selector::parse("title").map_err(|err| anyhow!(err.to_string()))?)
             .next()
@@ -99,6 +101,7 @@ impl ParserTrait for FetchUrl {
             url: url.to_string(),
             // parsed_content: ParsedContent::Text(format!("{:#?}", page_str.style).into()),
             parsed_content: ParsedContent::Text(page_str),
+            raw_text: raw_str,
             ..Default::default()
         })
     }

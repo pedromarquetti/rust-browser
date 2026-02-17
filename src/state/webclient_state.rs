@@ -50,11 +50,11 @@ impl WebClientState {
             AvailableSearchEngines::SearXNG => {
                 let page = SearxngResult::new()
                     .search(query.clone(), self)
-                    .await
-                    .context(format!(
-                        "WebClientState failed to search: \n{}\n{}",
-                        self.search_provider.url, query
-                    ))?;
+                    .await?;
+                    // .context(format!(
+                    //     "WebClientState failed to search: \n{}\n{}",
+                    //     self.search_provider.url, query
+                    // ))?;
                 self.is_loading = false;
                 self.curr_page = page;
                 self.curr_page.tab_id = tab_id;

@@ -72,10 +72,9 @@ impl State {
     }
 
     pub fn handle_up(&mut self) -> Result<()> {
-        if self.term_state.is_err
-            && self.term_state.scroll_idx != 0 {
-                self.term_state.scroll_idx -= 1
-            }
+        if self.term_state.is_err && self.term_state.scroll_idx != 0 {
+            self.term_state.scroll_idx -= 1
+        }
 
         let tab = match self.get_tab() {
             Ok(tab) => tab,
@@ -144,8 +143,16 @@ impl State {
     }
 
     fn scroll_down(&mut self) -> Result<()> {
-        let tab = self.get_tab()?;
-        tab.scroll_idx += 1;
+        let term_lines = self.term_state.lines;
+        if let Ok(tab) = self.get_tab().as_mut() {
+            if let Some(page) = tab.content.as_mut() {
+                // uses number of lines in page to determine a scroll limit
+                if tab.scroll_idx <= page.linecount as u16 + term_lines + 4 {
+                    tab.scroll_idx += 1;
+                }
+            }
+        }
+
         Ok(())
     }
 
@@ -197,7 +204,7 @@ impl State {
                     }
                 }
                 TaskResult::LoadError { tab_id, error } => {
-                    self.create_err(format!("Failed to load tab {} {} ", tab_id, error));
+                    self.create_err(format!("Failed to load tab: {},\nmsg: {} ", tab_id, error));
                 }
             }
         }

@@ -63,6 +63,7 @@ impl Term {
         frame.render_stateful_widget(self, frame.area(), state);
 
         state.term_state.cols = frame.area().width;
+        state.term_state.lines = frame.area().height;
 
         if state.term_state.mode == Mode::Insert
             && state.term_state.tab_state.curr_tab.is_none()

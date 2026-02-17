@@ -33,9 +33,14 @@ impl StatefulWidget for &mut Page {
                 }
             };
 
+            let scroll_idx: u16 = tab.scroll_idx;
+
             let title = Line::from(content.title.clone()).style(Style::default());
             tab.title = content.title.clone();
-            let wordcount = format!("words: {} lines: {}", tab.wordcount, tab.linecount);
+            let wordcount = format!(
+                "words: {} lines: {} scroll_idx: {}",
+                content.wordcount, content.linecount, scroll_idx,
+            );
             let details = Line::from(wordcount).style(Style::default().fg(Color::DarkGray));
 
             let block = Block::default()
@@ -46,7 +51,6 @@ impl StatefulWidget for &mut Page {
 
             let inner = block.inner(area);
             let available_width = inner.width;
-            let scroll_idx: i32 = tab.scroll_idx;
 
             block.render(area, buf);
 
@@ -69,6 +73,8 @@ impl StatefulWidget for &mut Page {
                 },
                 PageType::Raw => {
                     Clear.render(inner, buf);
+                    // wrapping 
+                    content.to_wrapped_string(state.term_state.cols);
                     match &content.parsed_content {
                         ParsedContent::Text(text) => {
                             // BUG:: leftover text on scroll happening even with Clear

@@ -14,9 +14,7 @@ pub struct Tab {
     pub title: String,
     pub content: Option<ParsedPage>,
     pub is_loading: bool,
-    pub linecount: usize,
-    pub wordcount: usize,
-    pub scroll_idx: i32,
+    pub scroll_idx: u16,
     /// defines if tab contains Search or Direct URL page
     pub content_type: TaskType,
 }
@@ -32,15 +30,6 @@ impl Tab {
         }
     }
 
-    /// set word count from parsed content
-    pub fn set_wordcount(&mut self, wordcount: usize) {
-        self.wordcount = wordcount;
-    }
-
-    /// set line count from parsed content
-    pub fn set_linecount(&mut self, linecount: usize) {
-        self.linecount = linecount;
-    }
 }
 
 impl Default for Tab {
@@ -48,8 +37,6 @@ impl Default for Tab {
         Self {
             id: -1,
             title: "".to_string(),
-            linecount: 0,
-            wordcount: 0,
             content: None,
             is_loading: false,
             scroll_idx: 0,

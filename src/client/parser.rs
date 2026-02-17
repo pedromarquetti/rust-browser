@@ -18,9 +18,97 @@ pub struct ParsedPage {
     pub url: String,
     // pub parsed_content: Vec<Part>,
     pub parsed_content: ParsedContent,
+    pub linecount: usize,
+    pub wordcount: usize,
     pub raw_text: String,
     pub state: ListState,
     pub page_type: PageType,
+}
+
+impl ParsedPage {
+    /// Function for wrapping the raw string and setting line/word count
+    pub fn to_wrapped_string(&mut self, width: u16) {
+        if self.raw_text.trim().is_empty() {
+            return;
+        }
+
+        let max = width.saturating_sub(4) as usize;
+        if max == 0 || self.raw_text.is_empty() {
+            return;
+        }
+
+        let mut wrapped = String::new();
+
+        let mut wordcount = 0;
+
+        for (i, line) in self.raw_text.lines().enumerate() {
+            // Preserve empty lines (paragraph breaks)
+            if line.trim().is_empty() {
+                if i != 0 {
+                    wrapped.push('\n');
+                }
+                continue;
+            }
+
+            let mut curr = String::new();
+
+            wordcount += line.split_whitespace().count();
+
+            for word in line.split_whitespace() {
+                if word.len() > max {
+                    if !curr.is_empty() {
+                        if !wrapped.is_empty() {
+                            wrapped.push('\n');
+                        }
+
+                        wrapped.push_str(&curr);
+                        curr.clear();
+                    }
+
+                    let mut start = 0;
+                    while start < word.len() {
+                        let end = (start + max).min(word.len());
+                        let chunk = &word[start..end];
+
+                        if !wrapped.is_empty() {
+                            wrapped.push('\n');
+                        }
+                        wrapped.push_str(chunk);
+                        start = end
+                    }
+                    continue;
+                }
+
+                let needs_space = !curr.is_empty();
+                let next_len = curr.len() + needs_space as usize + word.len();
+
+                if next_len <= max {
+                    if needs_space {
+                        curr.push(' ');
+                    }
+                    curr.push_str(word);
+                } else {
+                    if !wrapped.is_empty() {
+                        wrapped.push('\n');
+                    }
+                    wrapped.push_str(&curr);
+                    curr.clear();
+                    curr.push_str(word);
+                }
+            }
+            if !curr.is_empty() {
+                if !wrapped.is_empty() {
+                    wrapped.push('\n');
+                }
+                wrapped.push_str(&curr);
+            }
+        }
+
+        self.wordcount = wordcount;
+        self.linecount = wrapped.lines().count();
+    }
+
+
 }
 
 #[derive(Debug, Clone)]

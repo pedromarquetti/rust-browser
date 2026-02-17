@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{error::Error, str::FromStr};
 
 use crate::client::{
     fetcher::get_req,
@@ -8,7 +8,7 @@ use crate::client::{
 use anyhow::{Context, anyhow, bail};
 use reqwest::{Client, Url};
 
-use ratatui::widgets::ListState;
+use ratatui::{text::ToLine, widgets::ListState};
 use serde::{Deserialize, Serialize};
 
 use crate::client::{WebClientTrait, page_part::Part, parser::Link};
@@ -105,10 +105,16 @@ impl WebClientTrait for SearxngResult {
             ));
         };
 
-        let req = req
-            .json::<SearxngResult>()
-            .await
-            .context(format!("Error decoding JSON for url {:#?}", url))?;
+        let req = req.json::<SearxngResult>().await.map_err(|e|{
+            
+            return anyhow!("{:#?} {:#?}",e.to_string(),e.source())
+
+        })?;
+
+        // let req = req.json::<SearxngResult>().await.context(format!(
+        //     "({}) Error decoding JSON for url {:#?}",
+        //     status, url,
+        // ))?;
 
         req.to_parsed_page(url)
     }
