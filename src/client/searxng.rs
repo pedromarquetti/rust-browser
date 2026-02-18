@@ -1,10 +1,8 @@
 use std::str::FromStr;
 
-use crate::{
-    client::{
-        fetcher::get_req,
-        parser::{PageType, ParsedPage, ParserTrait},
-    },
+use crate::client::{
+    fetcher::get_req,
+    parser::{PageType, ParsedPage, ParserTrait},
 };
 
 use anyhow::{Context, anyhow, bail};

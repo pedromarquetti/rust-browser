@@ -107,7 +107,6 @@ impl Configs {
             }
         };
 
-
         Ok(Configs {
             config_file_name: self.config_file_name,
             config_path: self.config_path,

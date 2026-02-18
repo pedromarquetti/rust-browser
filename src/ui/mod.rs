@@ -1,9 +1,10 @@
+use ::crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{prelude::*, style::Stylize, widgets::Clear};
 use reqwest::Url;
-use std::{mem::take, str::FromStr, time::Duration};
+use std::{str::FromStr, time::Duration};
+use tui_input::backend::crossterm::EventHandler;
 
 use anyhow::{Context, Result};
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
     DefaultTerminal, Frame,
     layout::{Constraint, Direction, Layout},
@@ -65,15 +66,13 @@ impl Term {
 
         if state.term_state.mode == Mode::Insert
             && state.term_state.tab_state.curr_tab.is_none()
-            && let Some(input) = state.term_state.input_state.as_ref()
+            && let Some(input_state) = state.term_state.input_state.as_ref()
         {
             // derive screen cursor from input state
             let prefix_len: u16 = 2; // ": "
-            // BUG: this breaks if the user inserts non 1byte long character, will fix this in
-            // the future
-            let typed_len = input.value[..input.cursor.get_pos().0].chars().count() as u16;
-            let x = input.input_area.x + 1 + prefix_len + typed_len;
-            let y = input.input_area.y + 1;
+            let typed_len = input_state.input.visual_cursor() as u16;
+            let x = input_state.input_area.x + 1 + prefix_len + typed_len;
+            let y = input_state.input_area.y + 1;
 
             frame.set_cursor_position(Position::new(x, y));
         }
@@ -102,11 +101,6 @@ impl Term {
                 }
 
                 state.cancel_input();
-
-                // if state.term_state.input_state.is_some() {
-                //     state.cancel_input();
-                // }
-                // state.term_state.mode = Mode::Normal
             }
             (KeyCode::Char('q'), Mode::Normal) => state.term_state.exit = true,
             (KeyCode::Char('k'), Mode::Normal) => {
@@ -143,8 +137,9 @@ impl Term {
             }
             (KeyCode::Enter, Mode::Insert) => {
                 // TODO: maybe make a cache file with search history?
-                if let Some(mut val) = state.term_state.input_state.take() {
-                    let val = take(&mut val.value);
+                if let Some(mut input_state) = state.term_state.input_state.take() {
+                    // let val = take(&mut val.value);
+                    let val = input_state.input.value().to_string();
                     if val.is_empty() || val == " " || val.split_whitespace().next().is_none() {
                         state.create_err("No empty string allowed");
                     } else {
@@ -177,41 +172,9 @@ impl Term {
                     }
                 }
             }
-            (KeyCode::Backspace, Mode::Insert) => {
-                if let Some(input) = state.term_state.input_state.as_mut() {
-                    input.backspace()?;
-                }
-            }
-            (KeyCode::Delete, Mode::Insert) => {
-                if let Some(input) = state.term_state.input_state.as_mut() {
-                    input.delete();
-                }
-            }
-            (KeyCode::Left, Mode::Insert) => {
-                if let Some(input) = state.term_state.input_state.as_mut() {
-                    input.move_left();
-                }
-            }
-            (KeyCode::Right, Mode::Insert) => {
-                if let Some(input) = state.term_state.input_state.as_mut() {
-                    input.move_right(state.term_state.cols as usize);
-                }
-            }
-            (KeyCode::Home, Mode::Insert) => {
-                if let Some(input) = state.term_state.input_state.as_mut() {
-                    input.move_home();
-                }
-            }
-            (KeyCode::End, Mode::Insert) => {
-                if let Some(input) = state.term_state.input_state.as_mut() {
-                    input.move_end();
-                }
-            }
-
-            // insert text
-            (KeyCode::Char(c), Mode::Insert) => {
-                if let Some(input) = state.term_state.input_state.as_mut() {
-                    input.insert_char(c, state.term_state.cols as usize);
+            (_, Mode::Insert) => {
+                if let Some(input_state) = state.term_state.input_state.as_mut() {
+                    input_state.input.handle_event(&Event::Key(e));
                 }
             }
             _ => {}

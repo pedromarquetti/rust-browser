@@ -36,12 +36,12 @@ impl StatefulWidget for &mut Input {
         state: &mut Self::State,
     ) {
         let width = 80.min(area.width.saturating_sub(4));
-        let height = calc_height(&state.value, width, area, false);
+        let height = 3;
         let popup_area = popup_area(area, width, height);
 
         state.input_area = popup_area;
 
-        let paragraph = Paragraph::new(format!(": {:}", state.value))
+        let paragraph = Paragraph::new(format!(": {:}", state.input.value()))
             
             .wrap(Wrap { trim: false })
             .block(Block::bordered().title(state.input_type.to_string()));

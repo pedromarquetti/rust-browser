@@ -189,17 +189,6 @@ impl State {
         self.term_state.input_state = None
     }
 
-    pub fn return_input(&mut self) -> Option<String> {
-        self.term_state.mode = Mode::Normal;
-        self.term_state.input_state = None;
-        match &self.term_state.input_state {
-            Some(input) => Some(input.value.clone()),
-            None => {
-                self.create_err("No string found".to_string());
-                None
-            }
-        }
-    }
 
     /// handler for processing task result from background tasks
     pub fn process_task_results(&mut self) {
