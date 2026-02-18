@@ -13,7 +13,6 @@ use crate::{
     },
 };
 
-pub mod cursor;
 pub mod input;
 pub mod tab_state;
 pub mod term;
@@ -63,13 +62,7 @@ impl State {
             name: configs.webclient_config.provider,
             url: configs.webclient_config.search_url,
         }
-    }
-
-    pub fn set_tab_title(&mut self, title: String) -> Result<()> {
-        let tab = self.get_tab()?;
-        tab.title = title;
-        Ok(())
-    }
+    } 
 
     pub fn get_tab(&mut self) -> Result<&mut Tab> {
         match self.term_state.tab_state.curr_tab.as_mut() {
