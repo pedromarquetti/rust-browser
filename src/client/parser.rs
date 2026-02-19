@@ -26,6 +26,24 @@ pub struct ParsedPage {
 }
 
 impl ParsedPage {
+    /// (usize, usize, usize) 
+    /// == (line, idx_in_line, byte_idx)
+    /// "idx_in_line" represents what char in the line matches the search
+    /// "byte_idx" represents the raw byte pos. of the search
+    pub fn get_search_pos<S>(&mut self, pattern: S) -> Option<(usize, usize, usize)>
+    where
+        S: Display + ToString,
+    {
+        let mut curr_offset = 0;
+        for (line_n, line) in self.raw_text.lines().enumerate() {
+            if let Some(idx_in_line) = line.find(&pattern.to_string()) {
+                return Some((line_n,idx_in_line,curr_offset+idx_in_line));
+            };
+            curr_offset += line.len() + "\n".len()
+        };
+        None
+    }
+
     /// Function for wrapping the raw string and setting line/word count
     pub fn to_wrapped_string(&mut self, width: u16) {
         if self.raw_text.trim().is_empty() {
@@ -107,8 +125,6 @@ impl ParsedPage {
         self.wordcount = wordcount;
         self.linecount = wrapped.lines().count();
     }
-
-
 }
 
 #[derive(Debug, Clone)]
