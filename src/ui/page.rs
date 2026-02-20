@@ -43,9 +43,12 @@ impl StatefulWidget for &mut Page {
             );
             let details = Line::from(wordcount).style(Style::default().fg(Color::DarkGray));
 
+
             let block = Block::default()
                 .borders(Borders::all())
                 .title(title)
+                .title_bottom(state.term_state.mode.to_string())
+                .title_bottom(content.pos.to_string())
                 .title(details)
                 .bg(Color::Reset);
 

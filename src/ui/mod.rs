@@ -66,7 +66,7 @@ impl Term {
         state.term_state.lines = frame.area().height;
 
         if state.term_state.mode == Mode::Insert
-            && state.term_state.tab_state.curr_tab.is_none()
+            // && state.term_state.tab_state.curr_tab.is_none()
             && let Some(input_state) = state.term_state.input_state.as_ref()
         {
             // derive screen cursor from input state
@@ -137,37 +137,54 @@ impl Term {
             }
             (KeyCode::Enter, Mode::Insert) => {
                 // TODO: maybe make a cache file with search history?
-                if let Some(mut input_state) = state.term_state.input_state.take() {
-                    // let val = take(&mut val.value);
+                if let Some(input_state) = state.term_state.input_state.take() {
                     let val = input_state.input.value().to_string();
-                    if val.is_empty() || val == " " || val.split_whitespace().next().is_none() {
-                        state.create_err("No empty string allowed");
-                    } else {
-                        match Url::from_str(&val) {
-                            Ok(url) => {
-                                let schema = url.scheme();
-                                if schema.starts_with("https") || schema.starts_with("http") {
-                                    let task_type = TaskType::Url(Url::from_str(&val)?);
-                                    state.term_state.mode = Mode::Normal;
-                                    let tab_id = state
-                                        .term_state
-                                        .tab_state
-                                        .new_tab(val.clone(), task_type.clone())
-                                        .context("Cannot create tab!")?;
-                                    state.spawn_page(task_type, tab_id)?;
+                    match input_state.input_type {
+                        InputType::WebSearch => {
+                            if val.is_empty()
+                                || val == " "
+                                || val.split_whitespace().next().is_none()
+                            {
+                                state.create_err("No empty string allowed");
+                            } else {
+                                match Url::from_str(&val) {
+                                    Ok(url) => {
+                                        let schema = url.scheme();
+                                        if schema.starts_with("https") || schema.starts_with("http")
+                                        {
+                                            let task_type = TaskType::Url(Url::from_str(&val)?);
+                                            state.term_state.mode = Mode::Normal;
+                                            let tab_id = state
+                                                .term_state
+                                                .tab_state
+                                                .new_tab(val.clone(), task_type.clone())
+                                                .context("Cannot create tab!")?;
+                                            state.spawn_page(task_type, tab_id)?;
+                                        }
+                                    }
+                                    Err(_) => {
+                                        // input is valid but not URL
+                                        let task_type = TaskType::Search(val.clone());
+                                        state.term_state.mode = Mode::Normal;
+                                        let tab_id = state
+                                            .term_state
+                                            .tab_state
+                                            .new_tab(val.clone(), task_type.clone())
+                                            .context("Cannot create tab!")?;
+                                        state.spawn_page(task_type, tab_id)?;
+                                    }
                                 }
                             }
-                            Err(_) => {
-                                // input is valid but not URL
-                                let task_type = TaskType::Search(val.clone());
-                                state.term_state.mode = Mode::Normal;
-                                let tab_id = state
-                                    .term_state
-                                    .tab_state
-                                    .new_tab(val.clone(), task_type.clone())
-                                    .context("Cannot create tab!")?;
-                                state.spawn_page(task_type, tab_id)?;
+                        }
+                        InputType::StringSearch => {
+                            if let Some(tab) = state.term_state.tab_state.curr_tab.as_mut() {
+                                if let Some(page) = tab.content.as_mut() {
+                                    if let Some((line, _, _)) = page.get_search_pos(val) {
+                                        tab.scroll_idx = line as u16;
+                                    }
+                                }
                             }
+                            state.term_state.mode = Mode::Normal;
                         }
                     }
                 }
@@ -243,7 +260,11 @@ impl StatefulWidget for &mut Term {
 
             Paragraph::new(t)
                 .alignment(ratatui::layout::Alignment::Center)
-                .block(Block::new().borders(Borders::all()))
+                .block(
+                    Block::new()
+                        .title_bottom(state.term_state.mode.to_string())
+                        .borders(Borders::all()),
+                )
                 .render(page[0], buf);
         }
 

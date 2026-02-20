@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Display, write};
 
 use anyhow::Result;
 use ratatui::{text::Text, widgets::ListState};
@@ -20,13 +20,27 @@ pub struct ParsedPage {
     pub parsed_content: ParsedContent,
     pub linecount: usize,
     pub wordcount: usize,
+    pub pos: StrPos,
     pub raw_text: String,
     pub state: ListState,
     pub page_type: PageType,
 }
 
+#[derive(Debug, Default, Clone)]
+pub struct StrPos {
+    line: usize,
+    idx: usize,
+    _byte: usize,
+}
+
+impl Display for StrPos {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "line: {}, pos: {}", self.line, self.idx)
+    }
+}
+
 impl ParsedPage {
-    /// (usize, usize, usize) 
+    /// (usize, usize, usize)
     /// == (line, idx_in_line, byte_idx)
     /// "idx_in_line" represents what char in the line matches the search
     /// "byte_idx" represents the raw byte pos. of the search
@@ -37,10 +51,11 @@ impl ParsedPage {
         let mut curr_offset = 0;
         for (line_n, line) in self.raw_text.lines().enumerate() {
             if let Some(idx_in_line) = line.find(&pattern.to_string()) {
-                return Some((line_n,idx_in_line,curr_offset+idx_in_line));
+                self.pos = StrPos { line: line_n, idx: idx_in_line, _byte: curr_offset+idx_in_line };
+                return Some((line_n, idx_in_line, curr_offset + idx_in_line));
             };
             curr_offset += line.len() + "\n".len()
-        };
+        }
         None
     }
 
