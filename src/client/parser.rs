@@ -20,7 +20,8 @@ pub struct ParsedPage {
     pub parsed_content: ParsedContent,
     pub linecount: usize,
     pub wordcount: usize,
-    pub pos: StrPos,
+    pub pos: Vec<StrPos>,
+    pub curr_search_idx: u16,
     pub raw_text: String,
     pub state: ListState,
     pub page_type: PageType,
@@ -28,9 +29,9 @@ pub struct ParsedPage {
 
 #[derive(Debug, Default, Clone)]
 pub struct StrPos {
-    line: usize,
-    idx: usize,
-    _byte: usize,
+    pub line: usize,
+    pub idx: usize,
+    pub _byte: usize,
 }
 
 impl Display for StrPos {
@@ -40,23 +41,28 @@ impl Display for StrPos {
 }
 
 impl ParsedPage {
-    /// (usize, usize, usize)
-    /// == (line, idx_in_line, byte_idx)
-    /// "idx_in_line" represents what char in the line matches the search
-    /// "byte_idx" represents the raw byte pos. of the search
-    pub fn get_search_pos<S>(&mut self, pattern: S) -> Option<(usize, usize, usize)>
+    /// This func fills ParsedPage::pos with a vec of results
+    pub fn get_search_pos<S>(&mut self, pattern: &S) 
     where
         S: Display + ToString,
     {
+        let pattern = pattern.to_string();
+        let mut res: Vec<StrPos> = Vec::new();
         let mut curr_offset = 0;
         for (line_n, line) in self.raw_text.lines().enumerate() {
-            if let Some(idx_in_line) = line.find(&pattern.to_string()) {
-                self.pos = StrPos { line: line_n, idx: idx_in_line, _byte: curr_offset+idx_in_line };
-                return Some((line_n, idx_in_line, curr_offset + idx_in_line));
-            };
+            let mut start = 0;
+            while let Some(idx_in_line) = line[start..].find(&pattern) {
+                let idx = start + idx_in_line;
+                res.push(StrPos {
+                    line: line_n,
+                    idx: idx,
+                    _byte: curr_offset + idx,
+                });
+                start += idx_in_line + pattern.len().max(1);
+            }
             curr_offset += line.len() + "\n".len()
         }
-        None
+        self.pos = res;
     }
 
     /// Function for wrapping the raw string and setting line/word count

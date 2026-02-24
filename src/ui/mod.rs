@@ -115,9 +115,10 @@ impl Term {
             }
             (KeyCode::Char('/'), Mode::Normal) => state.new_input(InputType::StringSearch),
             (KeyCode::Char('n'), Mode::Normal) => state.term_state.tab_state.next_tab()?,
+            (KeyCode::Down, Mode::Normal) => {}
+            (KeyCode::Up, Mode::Normal) => {}
             (KeyCode::Char('p'), Mode::Normal) => state.term_state.tab_state.prev_tab()?,
             (KeyCode::Char('d'), Mode::Normal) => state.term_state.tab_state.del_tab()?,
-            (KeyCode::Char('e'), Mode::Normal) => state.create_err(""),
             (KeyCode::Char('o'), Mode::Normal) => {
                 // current selected item by cursor
                 if let Ok(item) = state.term_state.tab_state.get_selected_item() {
@@ -139,32 +140,18 @@ impl Term {
                 // TODO: maybe make a cache file with search history?
                 if let Some(input_state) = state.term_state.input_state.take() {
                     let val = input_state.input.value().to_string();
+                    if val.is_empty() || val == " " || val.split_whitespace().next().is_none() {
+                        state.create_err("No empty string allowed");
+                        return Ok(());
+                    };
+
                     match input_state.input_type {
                         InputType::WebSearch => {
-                            if val.is_empty()
-                                || val == " "
-                                || val.split_whitespace().next().is_none()
-                            {
-                                state.create_err("No empty string allowed");
-                            } else {
-                                match Url::from_str(&val) {
-                                    Ok(url) => {
-                                        let schema = url.scheme();
-                                        if schema.starts_with("https") || schema.starts_with("http")
-                                        {
-                                            let task_type = TaskType::Url(Url::from_str(&val)?);
-                                            state.term_state.mode = Mode::Normal;
-                                            let tab_id = state
-                                                .term_state
-                                                .tab_state
-                                                .new_tab(val.clone(), task_type.clone())
-                                                .context("Cannot create tab!")?;
-                                            state.spawn_page(task_type, tab_id)?;
-                                        }
-                                    }
-                                    Err(_) => {
-                                        // input is valid but not URL
-                                        let task_type = TaskType::Search(val.clone());
+                            match Url::from_str(&val) {
+                                Ok(url) => {
+                                    let schema = url.scheme();
+                                    if schema.starts_with("https") || schema.starts_with("http") {
+                                        let task_type = TaskType::Url(Url::from_str(&val)?);
                                         state.term_state.mode = Mode::Normal;
                                         let tab_id = state
                                             .term_state
@@ -174,21 +161,39 @@ impl Term {
                                         state.spawn_page(task_type, tab_id)?;
                                     }
                                 }
+                                Err(_) => {
+                                    // input is valid but not URL
+                                    let task_type = TaskType::Search(val.clone());
+                                    state.term_state.mode = Mode::Normal;
+                                    let tab_id = state
+                                        .term_state
+                                        .tab_state
+                                        .new_tab(val.clone(), task_type.clone())
+                                        .context("Cannot create tab!")?;
+                                    state.spawn_page(task_type, tab_id)?;
+                                }
                             }
                         }
                         InputType::StringSearch => {
                             if let Some(tab) = state.term_state.tab_state.curr_tab.as_mut() {
                                 if let Some(page) = tab.content.as_mut() {
-                                    if let Some((line, _, _)) = page.get_search_pos(val) {
-                                        tab.scroll_idx = line as u16;
+                                    // resetting idx
+                                    page.curr_search_idx = 0;
+                                    page.get_search_pos(&val);
+                                    if !page.pos.is_empty() {
+                                        tab.scroll_idx = page.pos[0].line as u16;
+                                    } else {
+                                        state.create_err(format!("Pattern {} not found!", val));
                                     }
                                 }
                             }
-                            state.term_state.mode = Mode::Normal;
                         }
                     }
+                    state.term_state.mode = Mode::Normal;
                 }
             }
+            (KeyCode::Char('t'), Mode::Normal) => state.next_search()?,
+            (KeyCode::Char('T'), Mode::Normal) => state.prev_search()?,
             (_, Mode::Insert) => {
                 if let Some(input_state) = state.term_state.input_state.as_mut() {
                     input_state.input.handle_event(&Event::Key(e));
@@ -253,6 +258,7 @@ impl StatefulWidget for &mut Term {
             t.push_line("p -> prev. tab");
             t.push_line("s -> search the web");
             t.push_line("j/k -> scroll");
+            t.push_line("t/T -> next_prev search");
             t.push_line("d -> delete tab");
             t.push_line("q -> Quit App");
             t.push_line("Enter -> Open link in default OS browser");

@@ -62,7 +62,7 @@ impl State {
             name: configs.webclient_config.provider,
             url: configs.webclient_config.search_url,
         }
-    } 
+    }
 
     pub fn get_tab(&mut self) -> Result<&mut Tab> {
         match self.term_state.tab_state.curr_tab.as_mut() {
@@ -102,6 +102,53 @@ impl State {
             TaskType::Search(_) => self.next_item()?,
             TaskType::Url(_) => self.scroll_down()?,
         };
+        Ok(())
+    }
+
+    pub fn prev_search(&mut self) -> Result<()> {
+        if let Some(tab) = self.term_state.tab_state.curr_tab.as_mut() {
+            if let Some(page) = tab.content.as_mut() {
+                if page.curr_search_idx != 0 {
+                    let curr_idx = page.curr_search_idx;
+                    match page.pos.get(curr_idx as usize - 1) {
+                        Some(i) => {
+                            tab.scroll_idx = i.line as u16;
+                            page.curr_search_idx -= 1;
+                        }
+                        None => {
+                            self.create_err(format!("No prev item!"));
+                            return Ok(());
+                        }
+                    }
+                } else {
+                    return Ok(());
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn next_search(&mut self) -> Result<()> {
+        if let Some(tab) = self.term_state.tab_state.curr_tab.as_mut() {
+            if let Some(page) = tab.content.as_mut() {
+                if !page.pos.is_empty() {
+                    let curr_idx = page.curr_search_idx;
+                    match page.pos.get(curr_idx as usize + 1) {
+                        Some(i) => {
+                            tab.scroll_idx = i.line as u16;
+                            page.curr_search_idx += 1;
+                        }
+                        None => {
+                            self.create_err(format!("No next item!"));
+                            return Ok(());
+                        }
+                    }
+                } else {
+                    self.create_err(format!("Empty list!"));
+                    return Ok(());
+                }
+            }
+        }
         Ok(())
     }
 
@@ -188,7 +235,6 @@ impl State {
         self.term_state.mode = Mode::Normal;
         self.term_state.input_state = None
     }
-
 
     /// handler for processing task result from background tasks
     pub fn process_task_results(&mut self) {
