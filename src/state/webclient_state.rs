@@ -2,8 +2,7 @@ use crate::{
     client::{WebClientTrait, fetch_url::FetchUrl, parser::ParsedPage, searxng::SearxngResult},
     config::webclient_config::AvailableSearchEngines,
 };
-use anyhow::{Context, Result, anyhow};
-use reqwest::Url;
+use anyhow::{Result, anyhow};
 
 #[derive(Debug, Clone, Default)]
 pub struct WebClientState {
@@ -28,15 +27,6 @@ impl SearchProvider {
 }
 
 impl WebClientState {
-    pub async fn fetch_url(&mut self, url: Url, tab_id: i32) -> Result<()> {
-        let page = FetchUrl::default().fetch_url(url.clone()).await?;
-
-        self.is_loading = false;
-        self.curr_page = page;
-        self.curr_page.tab_id = tab_id;
-        Ok(())
-    }
-
     /// shared state to search the web
     pub async fn search(&mut self, query: String, tab_id: i32) -> Result<()> {
         if self.search_provider.url.is_empty() || query.is_empty() {
@@ -50,11 +40,10 @@ impl WebClientState {
             AvailableSearchEngines::SearXNG => {
                 let page = SearxngResult::new()
                     .search(query.clone(), self)
-                    .await?;
-                    // .context(format!(
-                    //     "WebClientState failed to search: \n{}\n{}",
-                    //     self.search_provider.url, query
-                    // ))?;
+                    .await
+                    .map_err(|err| {
+                        anyhow!("WebClient search returned error: {}", err.to_string())
+                    })?;
                 self.is_loading = false;
                 self.curr_page = page;
                 self.curr_page.tab_id = tab_id;

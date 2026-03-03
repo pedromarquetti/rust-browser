@@ -36,7 +36,7 @@ impl WebClientTrait for FetchUrl {
         if !req.status().is_success() {
             return Err(anyhow!("URL Returned Error!\n {}", req.text().await?));
         }
-        let mut f = FetchUrl::default();
+        let mut f = FetchUrl::new(url.clone());
 
         let text = req.text().await?;
         f.data = text;
@@ -107,9 +107,8 @@ impl ParserTrait for FetchUrl {
     }
 }
 
-impl Default for FetchUrl {
-    fn default() -> Self {
-        let url = Url::from_str("https://example.com").expect("Failed to load default URL");
+impl FetchUrl {
+    pub fn new(url: Url) -> Self {
         Self {
             url,
             data: String::new(),

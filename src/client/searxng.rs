@@ -111,11 +111,6 @@ impl WebClientTrait for SearxngResult {
 
         })?;
 
-        // let req = req.json::<SearxngResult>().await.context(format!(
-        //     "({}) Error decoding JSON for url {:#?}",
-        //     status, url,
-        // ))?;
-
         req.to_parsed_page(url)
     }
 

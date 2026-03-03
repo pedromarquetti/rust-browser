@@ -3,7 +3,7 @@ use reqwest::Url;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::{
-    client::parser::ParsedPage,
+    client::{WebClientTrait, fetch_url::FetchUrl, parser::ParsedPage},
     config::Configs,
     state::{
         input::{InputState, InputType},
@@ -244,7 +244,7 @@ impl State {
                     if let Err(e) = self
                         .term_state
                         .tab_state
-                        .update_tab_content(tab_id, page.clone())
+                        .update_tab_content(tab_id, page)
                     {
                         self.create_err(format!("Failed to update tab {}", e));
                     }
@@ -266,9 +266,16 @@ impl State {
 
     pub fn spawn_page(&mut self, task_type: TaskType, tab_id: i32) -> Result<()> {
         let tx = self.task_tx.clone();
-        let web_state = self.web_client_state.clone();
+        let search_url = self.web_client_state.search_provider.url.clone();
+        let provider = self.web_client_state.search_provider.name;
         tokio::spawn(async move {
-            let mut web_state = web_state.clone();
+            let mut web_state = WebClientState {
+                search_provider: SearchProvider {
+                    url: search_url,
+                    name: provider,
+                },
+                ..Default::default()
+            };
             let res = match task_type {
                 TaskType::Search(query) => match web_state.search(query, tab_id).await {
                     Ok(()) => TaskResult::Loaded {
@@ -280,11 +287,8 @@ impl State {
                         error: e.to_string(),
                     },
                 },
-                TaskType::Url(url) => match web_state.fetch_url(url, tab_id).await {
-                    Ok(()) => TaskResult::Loaded {
-                        tab_id,
-                        page: web_state.curr_page,
-                    },
+                TaskType::Url(url) => match FetchUrl::new(url.clone()).fetch_url(url).await {
+                    Ok(page) => TaskResult::Loaded { tab_id, page },
                     Err(e) => TaskResult::LoadError {
                         tab_id,
                         error: e.to_string(),

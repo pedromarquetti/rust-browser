@@ -25,11 +25,10 @@ impl Tab {
             id,
             title,
             is_loading: true,
-            content_type: tab_type,
+            content_type: tab_type.clone(),
             ..Default::default()
         }
     }
-
 }
 
 impl Default for Tab {
@@ -46,7 +45,7 @@ impl Default for Tab {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct TabState  {
+pub struct TabState {
     pub tab_list: Vec<Tab>,
     /// current tab index
     pub idx: i32,
@@ -89,6 +88,7 @@ impl TabState {
             return Ok(());
         }
 
+        self.curr_tab = None;
         self.tab_list.remove(self.idx as usize);
         self.fix_idx();
 
@@ -120,16 +120,17 @@ impl TabState {
         }
 
         let tab = Tab::new(self.tab_list.len() as i32, title.into(), content_type);
+        let id = tab.id.clone();
         self.tab_list.push(tab.clone());
-        self.idx = tab.id;
-        self.curr_tab = Some(tab.clone());
-        Ok(tab.id)
+        self.idx = id;
+        self.curr_tab = Some(tab);
+        Ok(id)
     }
 
     /// helper function to set curr_tab with the id
     fn sync_content(&mut self) -> Result<()> {
         if let Some(tab) = self.tab_list.get(self.idx as usize) {
-            self.curr_tab = Some(tab.clone())
+            self.curr_tab = Some(tab.clone());
         }
         Ok(())
     }
@@ -165,20 +166,25 @@ impl TabState {
     /// function for handling async task updates
     pub fn update_tab_content(&mut self, tab_id: i32, page: ParsedPage) -> Result<()> {
         if let Some(tab) = self.tab_list.iter_mut().find(|i| i.id == tab_id) {
-            tab.content = Some(page.clone());
             tab.title = page.title.clone();
             tab.is_loading = false;
 
-            if self.idx == tab.id
-                && let Some(curr_tab) = &mut self.curr_tab
-            {
-                curr_tab.content = Some(page);
-                curr_tab.is_loading = false;
+            if self.idx == tab.id {
+                if let Some(curr_tab) = &mut self.curr_tab {
+                    curr_tab.title = page.title.clone();
+                    curr_tab.content = Some(page);
+                    curr_tab.is_loading = false;
+                } else {
+                    tab.content = Some(page);
+                }
+            } else {
+                tab.content = Some(page);
             }
 
             Ok(())
         } else {
-            Err(anyhow!("Tab with id {} not foumd", tab_id))
+            // Err(anyhow!("Tab with id {} not foumd", tab_id))
+            Ok(())
         }
     }
 }
