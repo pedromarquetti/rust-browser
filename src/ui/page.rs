@@ -18,7 +18,7 @@ impl StatefulWidget for &mut Page {
     type State = State;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let tab = match state.term_state.tab_state.curr_tab.as_mut() {
+        let tab = match state.term_state.tab_state.curr_tab_mut() {
             Some(tab) => tab,
             None => {
                 return;

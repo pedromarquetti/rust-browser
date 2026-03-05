@@ -1,4 +1,4 @@
-use std::fmt::{Display, write};
+use std::fmt::Display;
 
 use anyhow::Result;
 use ratatui::{text::Text, widgets::ListState};
@@ -8,7 +8,7 @@ use crate::client::page_part::{Part, PartState};
 
 /// Trait to represent a valid parsed webpage
 pub trait ParserTrait {
-    fn to_parsed_page(&self, url: Url) -> Result<ParsedPage>;
+    fn to_parsed_page(&self, url: Url, tab_id: i32) -> Result<ParsedPage>;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -42,7 +42,7 @@ impl Display for StrPos {
 
 impl ParsedPage {
     /// This func fills ParsedPage::pos with a vec of results
-    pub fn get_search_pos<S>(&mut self, pattern: &S) 
+    pub fn get_search_pos<S>(&mut self, pattern: &S)
     where
         S: Display + ToString,
     {

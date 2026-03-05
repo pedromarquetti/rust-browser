@@ -1,4 +1,4 @@
-use std::{fmt::Display, str::FromStr};
+use std::fmt::Display;
 
 use anyhow::{anyhow, bail};
 use ratatui::{style::Stylize, text::Text, widgets::ListState};
@@ -25,11 +25,12 @@ impl WebClientTrait for FetchUrl {
         &self,
         _query: String,
         _state: &mut crate::state::webclient_state::WebClientState,
+        _tab_id: i32,
     ) -> anyhow::Result<super::parser::ParsedPage> {
         bail!("FetchUrl does not implement searching")
     }
 
-    async fn fetch_url(&self, url: Url) -> anyhow::Result<super::parser::ParsedPage> {
+    async fn fetch_url(&self, url: Url, tab_id: i32) -> anyhow::Result<super::parser::ParsedPage> {
         let client = Client::builder().user_agent(APP_USER_AGENT).build()?;
         let req = get_req(client, url.clone()).await?;
 
@@ -40,12 +41,12 @@ impl WebClientTrait for FetchUrl {
 
         let text = req.text().await?;
         f.data = text;
-        f.to_parsed_page(url)
+        f.to_parsed_page(url, tab_id)
     }
 }
 
 impl ParserTrait for FetchUrl {
-    fn to_parsed_page(&self, url: Url) -> anyhow::Result<super::parser::ParsedPage> {
+    fn to_parsed_page(&self, url: Url, tab_id: i32) -> anyhow::Result<super::parser::ParsedPage> {
         // let mut page_str: String = String::new().to_owned();
         let mut page_str: Text = Text::from("");
 
@@ -97,6 +98,7 @@ impl ParserTrait for FetchUrl {
             .unwrap_or_else(|| "Title not found".to_string());
 
         Ok(ParsedPage {
+            tab_id,
             title: doc_title,
             url: url.to_string(),
             // parsed_content: ParsedContent::Text(format!("{:#?}", page_str.style).into()),

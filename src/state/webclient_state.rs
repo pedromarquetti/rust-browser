@@ -1,5 +1,5 @@
 use crate::{
-    client::{WebClientTrait, fetch_url::FetchUrl, parser::ParsedPage, searxng::SearxngResult},
+    client::{WebClientTrait, parser::ParsedPage, searxng::SearxngResult},
     config::webclient_config::AvailableSearchEngines,
 };
 use anyhow::{Result, anyhow};
@@ -39,7 +39,7 @@ impl WebClientState {
         match self.search_provider.name {
             AvailableSearchEngines::SearXNG => {
                 let page = SearxngResult::new()
-                    .search(query.clone(), self)
+                    .search(query.clone(), self, tab_id)
                     .await
                     .map_err(|err| {
                         anyhow!("WebClient search returned error: {}", err.to_string())

@@ -65,7 +65,7 @@ impl State {
     }
 
     pub fn get_tab(&mut self) -> Result<&mut Tab> {
-        match self.term_state.tab_state.curr_tab.as_mut() {
+        match self.term_state.tab_state.curr_tab_mut() {
             Some(tab) => Ok(tab),
             None => Err(anyhow!("No tab!")),
         }
@@ -106,7 +106,7 @@ impl State {
     }
 
     pub fn prev_search(&mut self) -> Result<()> {
-        if let Some(tab) = self.term_state.tab_state.curr_tab.as_mut() {
+        if let Some(tab) = self.term_state.tab_state.curr_tab_mut() {
             if let Some(page) = tab.content.as_mut() {
                 if page.curr_search_idx != 0 {
                     let curr_idx = page.curr_search_idx;
@@ -129,7 +129,7 @@ impl State {
     }
 
     pub fn next_search(&mut self) -> Result<()> {
-        if let Some(tab) = self.term_state.tab_state.curr_tab.as_mut() {
+        if let Some(tab) = self.term_state.tab_state.curr_tab_mut() {
             if let Some(page) = tab.content.as_mut() {
                 if !page.pos.is_empty() {
                     let curr_idx = page.curr_search_idx;
@@ -154,7 +154,7 @@ impl State {
 
     /// Helper func. for select next list item for ParsedPage content
     fn prev_item(&mut self) -> Result<()> {
-        if let Some(tab) = &mut self.term_state.tab_state.curr_tab {
+        if let Some(tab) = &mut self.term_state.tab_state.curr_tab_mut() {
             // early return if page did not finish loading
             if tab.is_loading {
                 return Ok(());
@@ -173,7 +173,7 @@ impl State {
     /// Helper func. for select next list item for ParsedPage content
     fn next_item(&mut self) -> Result<()> {
         // BUG: scrolling too much leaves some residual text render
-        if let Some(tab) = &mut self.term_state.tab_state.curr_tab {
+        if let Some(tab) = self.term_state.tab_state.curr_tab_mut() {
             // early return if page did not finish loading
             if tab.is_loading {
                 return Ok(());
@@ -241,11 +241,7 @@ impl State {
         while let Ok(res) = self.task_rx.try_recv() {
             match res {
                 TaskResult::Loaded { tab_id, page } => {
-                    if let Err(e) = self
-                        .term_state
-                        .tab_state
-                        .update_tab_content(tab_id, page)
-                    {
+                    if let Err(e) = self.term_state.tab_state.update_tab_content(tab_id, page) {
                         self.create_err(format!("Failed to update tab {}", e));
                     }
                 }
@@ -287,7 +283,8 @@ impl State {
                         error: e.to_string(),
                     },
                 },
-                TaskType::Url(url) => match FetchUrl::new(url.clone()).fetch_url(url).await {
+                TaskType::Url(url) => match FetchUrl::new(url.clone()).fetch_url(url, tab_id).await
+                {
                     Ok(page) => TaskResult::Loaded { tab_id, page },
                     Err(e) => TaskResult::LoadError {
                         tab_id,

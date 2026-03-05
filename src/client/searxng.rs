@@ -8,7 +8,7 @@ use crate::client::{
 use anyhow::{Context, anyhow, bail};
 use reqwest::{Client, Url};
 
-use ratatui::{text::ToLine, widgets::ListState};
+use ratatui::widgets::ListState;
 use serde::{Deserialize, Serialize};
 
 use crate::client::{WebClientTrait, page_part::Part, parser::Link};
@@ -31,7 +31,7 @@ impl SearxngResult {
 }
 
 impl ParserTrait for SearxngResult {
-    fn to_parsed_page(&self, url: Url) -> anyhow::Result<ParsedPage> {
+    fn to_parsed_page(&self, url: Url, tab_id: i32) -> anyhow::Result<ParsedPage> {
         let mut content: Vec<Part> = vec![];
 
         self.infoboxes.iter().for_each(|i| {
@@ -55,6 +55,7 @@ impl ParserTrait for SearxngResult {
         }
 
         Ok(ParsedPage {
+            tab_id,
             title: self.query.clone() + " - SearXNG",
             url: url.to_string(),
             page_type: PageType::Search,
@@ -70,6 +71,7 @@ impl WebClientTrait for SearxngResult {
         &self,
         query: String,
         state: &mut crate::state::webclient_state::WebClientState,
+        tab_id: i32,
     ) -> anyhow::Result<ParsedPage> {
         if state.search_provider.url.is_empty() {
             return Err(anyhow!("SearXNG URL not set!"));
@@ -105,16 +107,15 @@ impl WebClientTrait for SearxngResult {
             ));
         };
 
-        let req = req.json::<SearxngResult>().await.map_err(|e|{
-            
-            return anyhow!("{:#?} {:#?}",e.to_string(),e.source())
+        let req = req
+            .json::<SearxngResult>()
+            .await
+            .map_err(|e| return anyhow!("{:#?} {:#?}", e.to_string(), e.source()))?;
 
-        })?;
-
-        req.to_parsed_page(url)
+        req.to_parsed_page(url, tab_id)
     }
 
-    async fn fetch_url(&self, _url: Url) -> anyhow::Result<ParsedPage> {
+    async fn fetch_url(&self, _url: Url, _tab_id: i32) -> anyhow::Result<ParsedPage> {
         bail!("This provider does not implement direct url!")
     }
 }

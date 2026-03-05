@@ -49,29 +49,39 @@ pub struct TabState {
     pub tab_list: Vec<Tab>,
     /// current tab index
     pub idx: i32,
-    pub curr_tab: Option<Tab>,
 }
 
 impl TabState {
-    /// Helper func. to save current tab state to tab list
-    /// (scroll idx fix)
-    pub fn save_tab(&mut self) {
-        if let Some(tab) = &self.curr_tab
-            && let Some(stored_tab) = self.tab_list.get_mut(self.idx as usize)
-        {
-            *stored_tab = tab.clone();
-        }
+    pub fn curr_tab_mut(&mut self) -> Option<&mut Tab> {
+        self.tab_list.get_mut(self.idx as usize)
     }
 
+    pub fn curr_tab(&self) -> Option<&Tab> {
+        self.tab_list.get(self.idx as usize)
+    }
+
+    // /// Helper func. to save current tab state to tab list
+    // /// (scroll idx fix)
+    // pub fn save_tab(&mut self) {
+    //     if let Some(tab) = &self.curr_tab()
+    //         && let Some(stored_tab) = self.tab_list.get_mut(self.idx as usize)
+    //     {
+    //         *stored_tab = tab;
+    //     }
+    // }
+
     /// get currently selected item under ListState
-    pub fn get_selected_item(&self) -> Result<Part> {
-        if let Some(tab) = &self.curr_tab {
+    pub fn get_selected_item(&mut self) -> Result<Part> {
+        if let Some(tab) = &self.curr_tab() {
             if let Some(page) = &tab.content {
                 let idx = page.state.selected().unwrap_or(0);
                 match &page.parsed_content {
                     ParsedContent::PartList(list) => {
                         // filter list
-                        Ok(list[idx].clone())
+                        match list.get(idx) {
+                            Some(i) => Ok(i.clone()),
+                            None => Err(anyhow!("No item!")),
+                        }
                     }
                     _ => Err(anyhow!("No page!")),
                 }
@@ -88,20 +98,14 @@ impl TabState {
             return Ok(());
         }
 
-        self.curr_tab = None;
         self.tab_list.remove(self.idx as usize);
         self.fix_idx();
 
-        if self.idx > 0 {
-            self.idx -= 1;
+        if self.tab_list.is_empty() {
+            self.idx = 0;
         }
 
-        if self.tab_list.is_empty() {
-            self.curr_tab = None;
-            self.idx = 0;
-        } else {
-            self.sync_content()?;
-        }
+        self.prev_tab()?;
 
         Ok(())
     }
@@ -111,40 +115,34 @@ impl TabState {
         // change next item id (+1)
         for (i, tab) in self.tab_list.iter_mut().enumerate() {
             tab.id = i as i32;
+            if let Some(content) = tab.content.as_mut() {
+                content.tab_id = i as i32
+            }
         }
     }
 
     pub fn new_tab<S: Into<String>>(&mut self, title: S, content_type: TaskType) -> Result<i32> {
-        if self.curr_tab.as_mut().is_some() {
-            self.save_tab();
-        }
-
         let tab = Tab::new(self.tab_list.len() as i32, title.into(), content_type);
         let id = tab.id.clone();
-        self.tab_list.push(tab.clone());
+        self.tab_list.push(tab);
         self.idx = id;
-        self.curr_tab = Some(tab);
         Ok(id)
     }
 
-    /// helper function to set curr_tab with the id
-    fn sync_content(&mut self) -> Result<()> {
-        if let Some(tab) = self.tab_list.get(self.idx as usize) {
-            self.curr_tab = Some(tab.clone());
-        }
-        Ok(())
-    }
+    // /// helper function to set curr_tab with the id
+    // fn sync_content(&mut self) -> Result<()> {
+    //     if let Some(tab) = self.tab_list.get(self.idx as usize) {
+    //         self.curr_tab() = Some(tab.clone());
+    //     }
+    //     Ok(())
+    // }
 
     pub fn next_tab(&mut self) -> Result<()> {
         if self.tab_list.is_empty() {
             return Ok(());
         }
 
-        self.save_tab();
-
         self.idx = (self.idx + 1).min(self.tab_list.len() as i32 - 1);
-
-        self.sync_content()?;
 
         Ok(())
     }
@@ -154,11 +152,7 @@ impl TabState {
             return Ok(());
         }
 
-        self.save_tab();
-
         self.idx = (self.idx - 1).max(0);
-
-        self.sync_content()?;
 
         Ok(())
     }
@@ -168,18 +162,7 @@ impl TabState {
         if let Some(tab) = self.tab_list.iter_mut().find(|i| i.id == tab_id) {
             tab.title = page.title.clone();
             tab.is_loading = false;
-
-            if self.idx == tab.id {
-                if let Some(curr_tab) = &mut self.curr_tab {
-                    curr_tab.title = page.title.clone();
-                    curr_tab.content = Some(page);
-                    curr_tab.is_loading = false;
-                } else {
-                    tab.content = Some(page);
-                }
-            } else {
-                tab.content = Some(page);
-            }
+            tab.content = Some(page);
 
             Ok(())
         } else {

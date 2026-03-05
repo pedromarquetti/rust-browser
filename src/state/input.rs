@@ -1,6 +1,5 @@
 use std::fmt::Display;
 
-use anyhow::Result;
 use ratatui::layout::Rect;
 use tui_input::Input;
 
