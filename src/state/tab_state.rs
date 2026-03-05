@@ -60,16 +60,6 @@ impl TabState {
         self.tab_list.get(self.idx as usize)
     }
 
-    // /// Helper func. to save current tab state to tab list
-    // /// (scroll idx fix)
-    // pub fn save_tab(&mut self) {
-    //     if let Some(tab) = &self.curr_tab()
-    //         && let Some(stored_tab) = self.tab_list.get_mut(self.idx as usize)
-    //     {
-    //         *stored_tab = tab;
-    //     }
-    // }
-
     /// get currently selected item under ListState
     pub fn get_selected_item(&mut self) -> Result<Part> {
         if let Some(tab) = &self.curr_tab() {
@@ -99,7 +89,6 @@ impl TabState {
         }
 
         self.tab_list.remove(self.idx as usize);
-        self.fix_idx();
 
         if self.tab_list.is_empty() {
             self.idx = 0;
@@ -110,17 +99,17 @@ impl TabState {
         Ok(())
     }
 
-    fn fix_idx(&mut self) {
-        // if next idx is != next tablist
-        // change next item id (+1)
-        for (i, tab) in self.tab_list.iter_mut().enumerate() {
-            tab.id = i as i32;
-            if let Some(content) = tab.content.as_mut() {
-                content.tab_id = i as i32
-            }
-        }
-    }
-
+    // fn fix_idx(&mut self) {
+    //     // if next idx is != next tablist
+    //     // change next item id (+1)
+    //     for (i, tab) in self.tab_list.iter_mut().enumerate() {
+    //         tab.id = i as i32;
+    //         if let Some(content) = tab.content.as_mut() {
+    //             content.tab_id = i as i32
+    //         }
+    //     }
+    // }
+   
     pub fn new_tab<S: Into<String>>(&mut self, title: S, content_type: TaskType) -> Result<i32> {
         let tab = Tab::new(self.tab_list.len() as i32, title.into(), content_type);
         let id = tab.id.clone();
@@ -128,14 +117,6 @@ impl TabState {
         self.idx = id;
         Ok(id)
     }
-
-    // /// helper function to set curr_tab with the id
-    // fn sync_content(&mut self) -> Result<()> {
-    //     if let Some(tab) = self.tab_list.get(self.idx as usize) {
-    //         self.curr_tab() = Some(tab.clone());
-    //     }
-    //     Ok(())
-    // }
 
     pub fn next_tab(&mut self) -> Result<()> {
         if self.tab_list.is_empty() {
