@@ -136,16 +136,6 @@ impl Term {
                     }
                 }
             }
-            (KeyCode::Char('a'), Mode::Normal) => {
-                let task_type = TaskType::Url(Url::from_str(&"http://localhost:8081")?);
-                state.term_state.mode = Mode::Normal;
-                let tab_id = state
-                    .term_state
-                    .tab_state
-                    .new_tab("t", task_type.clone())
-                    .context("Cannot create tab!")?;
-                state.spawn_page(task_type, tab_id)?;
-            }
             (KeyCode::Enter, Mode::Insert) => {
                 // TODO: maybe make a cache file with search history?
                 if let Some(input_state) = state.term_state.input_state.take() {
