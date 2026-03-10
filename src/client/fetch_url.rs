@@ -1,4 +1,4 @@
-use std::{fmt::Display, str::FromStr};
+use std::fmt::Display;
 
 use anyhow::{anyhow, bail};
 use ratatui::{style::Stylize, text::Text, widgets::ListState};
@@ -25,27 +25,28 @@ impl WebClientTrait for FetchUrl {
         &self,
         _query: String,
         _state: &mut crate::state::webclient_state::WebClientState,
+        _tab_id: i32,
     ) -> anyhow::Result<super::parser::ParsedPage> {
         bail!("FetchUrl does not implement searching")
     }
 
-    async fn fetch_url(&self, url: Url) -> anyhow::Result<super::parser::ParsedPage> {
+    async fn fetch_url(&self, url: Url, tab_id: i32) -> anyhow::Result<super::parser::ParsedPage> {
         let client = Client::builder().user_agent(APP_USER_AGENT).build()?;
         let req = get_req(client, url.clone()).await?;
 
         if !req.status().is_success() {
             return Err(anyhow!("URL Returned Error!\n {}", req.text().await?));
         }
-        let mut f = FetchUrl::default();
+        let mut f = FetchUrl::new(url.clone());
 
         let text = req.text().await?;
         f.data = text;
-        f.to_parsed_page(url)
+        f.to_parsed_page(url, tab_id)
     }
 }
 
 impl ParserTrait for FetchUrl {
-    fn to_parsed_page(&self, url: Url) -> anyhow::Result<super::parser::ParsedPage> {
+    fn to_parsed_page(&self, url: Url, tab_id: i32) -> anyhow::Result<super::parser::ParsedPage> {
         // let mut page_str: String = String::new().to_owned();
         let mut page_str: Text = Text::from("");
 
@@ -88,6 +89,8 @@ impl ParserTrait for FetchUrl {
 
         walk(&mut page_str, root, &url);
 
+        let raw_str = page_str.to_string();
+
         let doc_title = doc
             .select(&Selector::parse("title").map_err(|err| anyhow!(err.to_string()))?)
             .next()
@@ -95,18 +98,19 @@ impl ParserTrait for FetchUrl {
             .unwrap_or_else(|| "Title not found".to_string());
 
         Ok(ParsedPage {
+            tab_id,
             title: doc_title,
             url: url.to_string(),
             // parsed_content: ParsedContent::Text(format!("{:#?}", page_str.style).into()),
             parsed_content: ParsedContent::Text(page_str),
+            raw_text: raw_str,
             ..Default::default()
         })
     }
 }
 
-impl Default for FetchUrl {
-    fn default() -> Self {
-        let url = Url::from_str("https://example.com").expect("Failed to load default URL");
+impl FetchUrl {
+    pub fn new(url: Url) -> Self {
         Self {
             url,
             data: String::new(),

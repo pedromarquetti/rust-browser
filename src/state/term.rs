@@ -12,6 +12,7 @@ pub struct TermState {
     pub exit: bool,
     pub scroll_idx: i32,
     pub cols: u16,
+    pub lines: u16,
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]

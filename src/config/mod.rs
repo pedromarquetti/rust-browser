@@ -1,5 +1,4 @@
 use std::{
-    env::home_dir,
     fs::{create_dir_all, read},
     path::PathBuf,
     str::FromStr,
@@ -7,12 +6,12 @@ use std::{
 
 use crate::config::webclient_config::WebClientConfig;
 use anyhow::{Context, Result, anyhow};
+use dirs::config_dir;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 
 pub mod webclient_config;
 
-const DEFAULT_CONFIG_FOLDER: &str = ".config/rust-browser";
 const APP_CONFIG_FILE: &str = "app.toml";
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -28,7 +27,7 @@ impl Default for Configs {
     fn default() -> Self {
         Self {
             config_file_name: APP_CONFIG_FILE,
-            config_path: DEFAULT_CONFIG_FOLDER,
+            config_path: ".",
             webclient_config: Default::default(),
         }
     }
@@ -46,10 +45,10 @@ impl Configs {
 
     /// This method tries to check if the config file exists, returning its path
     fn try_get_config(&self) -> Result<PathBuf> {
-        let home = home_dir().context("Cannot find home dir!")?;
+        let config = config_dir().context("Cannot find config dir")?;
 
         // this represents the config file path
-        let path = home.join(self.config_path);
+        let path = config.join("rust-browser");
 
         if !path.exists() {
             create_dir_all(&path).context("Failed to create dir!")?;
@@ -82,7 +81,7 @@ impl Configs {
         let path = self.get_config_file()?;
 
         if !path.exists() {
-            return Err(anyhow!("{:?} does not exist", path));
+            self.create_config()?;
         }
 
         let file = read(&path);
@@ -106,7 +105,6 @@ impl Configs {
                 ));
             }
         };
-
 
         Ok(Configs {
             config_file_name: self.config_file_name,

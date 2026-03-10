@@ -1,21 +1,22 @@
 # Simple Rust Terminal Browser!
 
-This is a very *very* _very_ **very** basic TUI Browser!
+This is a very _very_ _very_ **very** basic TUI Browser!
 
 ## What is this application?
 
-This application aims to be basic and render text-only (maybe images in the future?) webpages!
+This application aims to be basic and render text-only (maybe images in the
+future?) webpages!
 
 ## Features
 
-1. search using [SearXNG](searxng.org) 
-2. Basic results rendering 
-3. [Open](https://docs.rs/open) current link in default browser 
+1. search using [SearXNG](searxng.org) (other search engines can be implemented)
+2. Basic page rendering using [scraper](https://docs.rs/scraper/latest/scraper/) 
+3. [Open](https://docs.rs/open) current link in default browser
 
-## TODO
+## My inspirations
 
-1. Generic page parser
-2. code refactor (this codebase looks ugly)
-3. ???
-
-
+I recommend checking out
+[spotify-player](https://github.com/aome510/spotify-player) and
+[all these TUI apps](https://github.com/rothgar/awesome-tuis), i'm addicted to
+using TUI apps for everything an aspire to be a good Rust programmer. Please
+leave feedback on how i can improve my code

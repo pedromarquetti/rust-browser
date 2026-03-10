@@ -14,10 +14,8 @@ pub trait WebClientTrait {
         &self,
         query: String,
         state: &mut WebClientState,
+        tab_id: i32,
     ) -> impl Future<Output = Result<ParsedPage>> + Send;
 
-    fn fetch_url(
-        &self,
-        url: Url,
-    ) -> impl Future<Output = Result<ParsedPage>> + Send;
+    fn fetch_url(&self, url: Url,tab_id: i32) -> impl Future<Output = Result<ParsedPage>> + Send;
 }
