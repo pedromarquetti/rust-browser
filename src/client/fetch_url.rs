@@ -37,6 +37,7 @@ impl WebClientTrait for FetchUrl {
         if !req.status().is_success() {
             return Err(anyhow!("URL Returned Error!\n {}", req.text().await?));
         }
+
         let mut f = FetchUrl::new(url.clone());
 
         let text = req.text().await?;
