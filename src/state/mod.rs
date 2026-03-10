@@ -172,7 +172,6 @@ impl State {
 
     /// Helper func. for select next list item for ParsedPage content
     fn next_item(&mut self) -> Result<()> {
-        // BUG: scrolling too much leaves some residual text render
         if let Some(tab) = self.term_state.tab_state.curr_tab_mut() {
             // early return if page did not finish loading
             if tab.is_loading {
@@ -274,9 +273,9 @@ impl State {
             };
             let res = match task_type {
                 TaskType::Search(query) => match web_state.search(query, tab_id).await {
-                    Ok(()) => TaskResult::Loaded {
+                    Ok(page) => TaskResult::Loaded {
                         tab_id,
-                        page: web_state.curr_page,
+                        page: page,
                     },
                     Err(e) => TaskResult::LoadError {
                         tab_id,

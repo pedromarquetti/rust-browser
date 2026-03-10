@@ -7,7 +7,6 @@ use anyhow::{Result, anyhow};
 #[derive(Debug, Clone, Default)]
 pub struct WebClientState {
     pub search_provider: SearchProvider,
-    pub curr_page: ParsedPage,
     pub is_loading: bool,
 }
 
@@ -28,7 +27,7 @@ impl SearchProvider {
 
 impl WebClientState {
     /// shared state to search the web
-    pub async fn search(&mut self, query: String, tab_id: i32) -> Result<()> {
+    pub async fn search(&mut self, query: String, tab_id: i32) -> Result<ParsedPage> {
         if self.search_provider.url.is_empty() || query.is_empty() {
             return Err(anyhow!(format!(
                 "Search Provider URL OR query is empty!\nurl {}\n query {}",
@@ -45,11 +44,8 @@ impl WebClientState {
                         anyhow!("WebClient search returned error: {}", err.to_string())
                     })?;
                 self.is_loading = false;
-                self.curr_page = page;
-                self.curr_page.tab_id = tab_id;
+                Ok(page)
             }
         }
-
-        Ok(())
     }
 }
