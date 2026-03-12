@@ -94,6 +94,18 @@ impl Term {
     }
 
     pub fn handle_keypress(&mut self, e: KeyEvent, state: &mut State) -> Result<()> {
+        if state.term_state.is_err {
+            // do not allow any input other than Esc if err is active
+            match e.code {
+                KeyCode::Esc => {
+                    state.term_state.is_err = false;
+                    state.term_state.err_msg = String::new()
+                }
+                _ => {
+                    return Ok(());
+                }
+            }
+        }
         match (e.code, state.term_state.mode.clone()) {
             (KeyCode::Esc, _) => {
                 if state.term_state.is_err {
