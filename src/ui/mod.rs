@@ -2,6 +2,7 @@ use ::crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{prelude::*, style::Stylize, widgets::Clear};
 use reqwest::Url;
 use std::{str::FromStr, time::Duration};
+use tracing::{debug, error, info};
 use tui_input::backend::crossterm::EventHandler;
 
 use anyhow::{Context, Result};
@@ -66,7 +67,6 @@ impl Term {
         state.term_state.lines = frame.area().height;
 
         if state.term_state.mode == Mode::Insert
-            // && state.term_state.tab_state.curr_tab.is_none()
             && let Some(input_state) = state.term_state.input_state.as_ref()
         {
             // derive screen cursor from input state
@@ -164,6 +164,7 @@ impl Term {
 
                     match input_state.input_type {
                         InputType::WebSearch => {
+                            info!("User requested Web Search/URL request with {val}");
                             match Url::from_str(&val) {
                                 Ok(url) => {
                                     let schema = url.scheme();
@@ -175,11 +176,18 @@ impl Term {
                                             .tab_state
                                             .new_tab(val.clone(), task_type.clone())
                                             .context("Cannot create tab!")?;
+                                        info!(
+                                            "{val} is a valid url, created tab {tab_id}, spawning page"
+                                        );
                                         state.spawn_page(task_type, tab_id)?;
                                     }
                                 }
                                 Err(_) => {
                                     // input is valid but not URL
+                                    info!(
+                                        "searching for {val} using {:?}",
+                                        state.web_client_state.search_provider
+                                    );
                                     let task_type = TaskType::Search(val.clone());
                                     state.term_state.mode = Mode::Normal;
                                     let tab_id = state
@@ -192,6 +200,7 @@ impl Term {
                             }
                         }
                         InputType::StringSearch => {
+                            info!("Entering search mode");
                             if let Some(tab) = state.term_state.tab_state.curr_tab_mut() {
                                 if let Some(page) = tab.content.as_mut() {
                                     // resetting idx
@@ -200,6 +209,7 @@ impl Term {
                                     if !page.pos.is_empty() {
                                         tab.scroll_idx = page.pos[0].line as u16;
                                     } else {
+                                        error!("pattern {val} not found in search");
                                         state.create_err(format!("Pattern {} not found!", val));
                                     }
                                 }
@@ -298,6 +308,7 @@ impl StatefulWidget for &mut Term {
         }
 
         if state.term_state.is_err {
+            error!("Current Error on screen: {}", state.term_state.err_msg);
             ErrorTerm::new(&state.term_state.err_msg, state.term_state.scroll_idx)
                 .render(area, buf);
         }
