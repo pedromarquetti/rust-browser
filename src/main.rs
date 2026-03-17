@@ -1,6 +1,6 @@
 use anyhow::Result;
 use ratatui::restore;
-use tracing::{info,error};
+use tracing::{error, info};
 
 use crate::{config::Configs, helpers::init_log, state::State, ui::Term};
 
@@ -19,9 +19,9 @@ async fn main() -> Result<()> {
     // restoring terminal if the app crashes out!
     restore();
 
-    if let Err(ref e ) = app  {
+    if let Err(ref e) = app {
         error!(error = %e, "App error!");
-    }else {
+    } else {
         info!("App exit Ok!")
     }
 
