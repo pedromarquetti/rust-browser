@@ -1822,7 +1822,11 @@ dependencies = [
 
 [[package]]
 name = "rust-browser"
+<<<<<<< HEAD
 version = "0.2.0"
+=======
+version = "0.1.6"
+>>>>>>> fd3a2c50d142c7c311ae0b29fb2e6a27a26bb24d
 dependencies = [
  "anyhow",
  "crossterm",
