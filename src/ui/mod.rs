@@ -146,9 +146,17 @@ impl Term {
             (KeyCode::Enter, Mode::Normal) => {
                 if let Ok(curr_item) = state.term_state.tab_state.get_selected_item() {
                     if curr_item.link.is_some() {
-                        open::that_detached(curr_item.link.unwrap_or_default().url)?;
+                        let url = curr_item.link.unwrap_or_default().url;
+                        open::that_detached(&url)?;
+                        state.create_popup(
+                            format!("{} opened in default app!", url),
+                            TermType::Info,
+                        );
                     }
+                    // early return to prevent double that_detached runs
+                    return Ok(());
                 }
+                // because this runs if there's an active tab with content
                 if let Some(tab) = state.term_state.tab_state.curr_tab() {
                     if let Some(content) = &tab.content {
                         open::that_detached(content.url.clone())?;
@@ -156,6 +164,7 @@ impl Term {
                             format!("{} opened in default app!", content.url),
                             TermType::Info,
                         );
+                        return Ok(());
                     }
                 }
             }
