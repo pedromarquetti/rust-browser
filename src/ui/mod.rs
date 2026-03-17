@@ -2,7 +2,7 @@ use ::crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{prelude::*, style::Stylize, widgets::Clear};
 use reqwest::Url;
 use std::{str::FromStr, time::Duration};
-use tracing::{debug, error, info};
+use tracing::{error, info};
 use tui_input::backend::crossterm::EventHandler;
 
 use anyhow::{Context, Result};
@@ -14,16 +14,20 @@ use ratatui::{
 
 use crate::{
     state::input::InputType,
-    ui::{err_term::ErrorTerm, input::Input, top::Top},
+    ui::{
+        input::Input,
+        popup_term::{PopupTerm, TermType},
+        top::Top,
+    },
 };
 use crate::{
     state::{State, TaskType, term::Mode},
     ui::page::Page,
 };
 
-mod err_term;
 mod input;
 mod page;
+pub mod popup_term;
 mod tabs;
 mod top;
 
@@ -53,7 +57,7 @@ impl Term {
                 Err(e) => {
                     // dont't crash if an error was returned after pressing the
                     // wrong key
-                    state.create_err(e.to_string());
+                    state.create_popup(e.to_string(), TermType::Error)
                 }
             }
         }
@@ -94,12 +98,11 @@ impl Term {
     }
 
     pub fn handle_keypress(&mut self, e: KeyEvent, state: &mut State) -> Result<()> {
-        if state.term_state.is_err {
+        if state.term_state.pop_up.is_some() {
             // do not allow any input other than Esc if err is active
             match e.code {
                 KeyCode::Esc => {
-                    state.term_state.is_err = false;
-                    state.term_state.err_msg = String::new()
+                    state.close_popup();
                 }
                 _ => {
                     return Ok(());
@@ -108,9 +111,8 @@ impl Term {
         }
         match (e.code, state.term_state.mode.clone()) {
             (KeyCode::Esc, _) => {
-                if state.term_state.is_err {
-                    state.term_state.is_err = false;
-                    state.term_state.err_msg = String::new()
+                if state.term_state.pop_up.is_some() {
+                    state.close_popup();
                 }
 
                 state.cancel_input();
@@ -150,6 +152,10 @@ impl Term {
                 if let Some(tab) = state.term_state.tab_state.curr_tab() {
                     if let Some(content) = &tab.content {
                         open::that_detached(content.url.clone())?;
+                        state.create_popup(
+                            format!("{} opened in default app!", content.url),
+                            TermType::Info,
+                        );
                     }
                 }
             }
@@ -158,7 +164,7 @@ impl Term {
                 if let Some(input_state) = state.term_state.input_state.take() {
                     let val = input_state.input.value().to_string();
                     if val.is_empty() || val == " " || val.split_whitespace().next().is_none() {
-                        state.create_err("No empty string allowed");
+                        state.create_popup("No empty string allowed", TermType::Error);
                         return Ok(());
                     };
 
@@ -210,7 +216,10 @@ impl Term {
                                         tab.scroll_idx = page.pos[0].line as u16;
                                     } else {
                                         error!("pattern {val} not found in search");
-                                        state.create_err(format!("Pattern {} not found!", val));
+                                        state.create_popup(
+                                            format!("Pattern {} not found!", val),
+                                            TermType::Error,
+                                        );
                                     }
                                 }
                             }
@@ -263,7 +272,7 @@ impl StatefulWidget for &mut Term {
         {
             Ok(ok) => ok,
             Err(err) => {
-                state.create_err(err.to_string());
+                state.create_popup(err.to_string(), TermType::Error);
             }
         };
 
@@ -307,10 +316,13 @@ impl StatefulWidget for &mut Term {
             Input::new().create(area, buf, inputstate);
         }
 
-        if state.term_state.is_err {
-            error!("Current Error on screen: {}", state.term_state.err_msg);
-            ErrorTerm::new(&state.term_state.err_msg, state.term_state.scroll_idx)
-                .render(area, buf);
+        if let Some(data) = state.term_state.pop_up.as_ref() {
+            PopupTerm::new(
+                &data.popup_msg,
+                state.term_state.scroll_idx,
+                data.popup_type,
+            )
+            .render(area, buf);
         }
     }
 }
