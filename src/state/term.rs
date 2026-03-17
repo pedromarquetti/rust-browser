@@ -1,11 +1,13 @@
 use std::fmt::Display;
 
-use crate::state::{input::InputState, tab_state::TabState};
+use crate::{
+    state::{input::InputState, tab_state::TabState},
+    ui::popup_term::TermType,
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct TermState {
-    pub err_msg: String,
-    pub is_err: bool,
+    pub pop_up: Option<PopupState>,
     pub input_state: Option<InputState>,
     pub tab_state: TabState,
     pub mode: Mode,
@@ -13,6 +15,22 @@ pub struct TermState {
     pub scroll_idx: i32,
     pub cols: u16,
     pub lines: u16,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct PopupState {
+    // pop-up configs
+    pub popup_msg: String,
+    pub popup_type: TermType,
+}
+
+impl PopupState {
+    pub fn new<S: Into<String>>(popup_type: TermType, popup_msg: S) -> Self {
+        Self {
+            popup_msg: popup_msg.into(),
+            popup_type,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]

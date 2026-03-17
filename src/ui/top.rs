@@ -3,6 +3,7 @@ use ratatui::prelude::*;
 
 use crate::state::State;
 use crate::state::term::Mode;
+use crate::ui::popup_term::TermType;
 use crate::ui::tabs::TabWidget;
 
 #[derive(Debug, Clone)]
@@ -30,11 +31,13 @@ impl StatefulWidget for &mut Top {
     type State = State;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        if state.term_state.mode == Mode::Normal { match TabWidget::new().create(area, buf, state) {
-            Ok(ok) => ok,
-            Err(err) => {
-                state.create_err(err.to_string());
+        if state.term_state.mode == Mode::Normal {
+            match TabWidget::new().create(area, buf, state) {
+                Ok(ok) => ok,
+                Err(err) => {
+                    state.create_popup(err.to_string(), TermType::Error);
+                }
             }
-        } }
+        }
     }
 }

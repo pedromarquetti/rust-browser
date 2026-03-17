@@ -1,7 +1,7 @@
 use anyhow::{Result, anyhow};
 use reqwest::Url;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use tracing::{debug, error};
+use tracing::error;
 
 use crate::{
     client::{WebClientTrait, fetch_url::FetchUrl, parser::ParsedPage},
@@ -9,9 +9,10 @@ use crate::{
     state::{
         input::{InputState, InputType},
         tab_state::Tab,
-        term::{Mode, TermState},
+        term::{Mode, PopupState, TermState},
         webclient_state::{SearchProvider, WebClientState},
     },
+    ui::popup_term::TermType,
 };
 
 pub mod input;
@@ -73,7 +74,7 @@ impl State {
     }
 
     pub fn handle_up(&mut self) -> Result<()> {
-        if self.term_state.is_err && self.term_state.scroll_idx != 0 {
+        if self.term_state.scroll_idx != 0 {
             self.term_state.scroll_idx -= 1
         }
 
@@ -90,10 +91,6 @@ impl State {
     }
 
     pub fn handle_down(&mut self) -> Result<()> {
-        if self.term_state.is_err {
-            self.term_state.scroll_idx += 1
-        }
-
         let tab = match self.get_tab() {
             Ok(tab) => tab,
             Err(_) => return Ok(()),
@@ -117,7 +114,7 @@ impl State {
                             page.curr_search_idx -= 1;
                         }
                         None => {
-                            self.create_err(format!("No prev item!"));
+                            self.create_popup(format!("No prev item!"), TermType::Error);
                             return Ok(());
                         }
                     }
@@ -140,12 +137,12 @@ impl State {
                             page.curr_search_idx += 1;
                         }
                         None => {
-                            self.create_err(format!("No next item!"));
+                            self.create_popup(format!("No next item!"), TermType::Error);
                             return Ok(());
                         }
                     }
                 } else {
-                    self.create_err(format!("Empty list!"));
+                    self.create_popup(format!("Empty list!"), TermType::Error);
                     return Ok(());
                 }
             }
@@ -211,14 +208,12 @@ impl State {
         Ok(())
     }
 
-    pub fn create_err<S: Into<String>>(&mut self, msg: S) {
-        self.term_state.is_err = true;
-        self.term_state.err_msg = msg.into();
+    pub fn create_popup<S: Into<String>>(&mut self, msg: S, popup_type: TermType) {
+        self.term_state.pop_up = Some(PopupState::new(popup_type, msg))
     }
 
-    pub fn remove_err(&mut self) {
-        self.term_state.is_err = false;
-        self.term_state.err_msg = String::from("");
+    pub fn close_popup(&mut self) {
+        self.term_state.pop_up = None;
     }
 
     pub fn close_app(mut self) {
@@ -242,11 +237,14 @@ impl State {
             match res {
                 TaskResult::Loaded { tab_id, page } => {
                     if let Err(e) = self.term_state.tab_state.update_tab_content(tab_id, page) {
-                        self.create_err(format!("Failed to update tab {}", e));
+                        self.create_popup(format!("Failed to update tab {}", e), TermType::Error);
                     }
                 }
                 TaskResult::LoadError { tab_id, error } => {
-                    self.create_err(format!("Failed to load tab: {},\nmsg: {} ", tab_id, error));
+                    self.create_popup(
+                        format!("Failed to load tab: {},\nmsg: {} ", tab_id, error),
+                        TermType::Error,
+                    );
                 }
             }
         }
