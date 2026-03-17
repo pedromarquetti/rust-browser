@@ -1,6 +1,7 @@
 use anyhow::{Result, anyhow};
 use reqwest::Url;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tracing::{debug, error};
 
 use crate::{
     client::{WebClientTrait, fetch_url::FetchUrl, parser::ParsedPage},
@@ -273,22 +274,25 @@ impl State {
             };
             let res = match task_type {
                 TaskType::Search(query) => match web_state.search(query, tab_id).await {
-                    Ok(page) => TaskResult::Loaded {
-                        tab_id,
-                        page: page,
-                    },
-                    Err(e) => TaskResult::LoadError {
-                        tab_id,
-                        error: e.to_string(),
-                    },
+                    Ok(page) => TaskResult::Loaded { tab_id, page: page },
+                    Err(e) => {
+                        error!("{:#?}", e);
+                        TaskResult::LoadError {
+                            tab_id,
+                            error: e.to_string(),
+                        }
+                    }
                 },
                 TaskType::Url(url) => match FetchUrl::new(url.clone()).fetch_url(url, tab_id).await
                 {
                     Ok(page) => TaskResult::Loaded { tab_id, page },
-                    Err(e) => TaskResult::LoadError {
-                        tab_id,
-                        error: e.to_string(),
-                    },
+                    Err(e) => {
+                        error!("{:#?}", e);
+                        TaskResult::LoadError {
+                            tab_id,
+                            error: e.to_string(),
+                        }
+                    }
                 },
             };
             match tx.send(res) {
