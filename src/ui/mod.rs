@@ -147,6 +147,11 @@ impl Term {
                         open::that_detached(curr_item.link.unwrap_or_default().url)?;
                     }
                 }
+                if let Some(tab) = state.term_state.tab_state.curr_tab() {
+                    if let Some(content) = &tab.content {
+                        open::that_detached(content.url.clone())?;
+                    }
+                }
             }
             (KeyCode::Enter, Mode::Insert) => {
                 // TODO: maybe make a cache file with search history?
