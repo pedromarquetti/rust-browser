@@ -1,4 +1,8 @@
+use std::fs::create_dir_all;
+
+use anyhow::{Context, Result};
 use ratatui::{layout::Flex, prelude::*};
+use tracing_subscriber::{EnvFilter, fmt::layer, layer::SubscriberExt, util::SubscriberInitExt};
 
 /// helper function to create a centered rect using up certain percentage of the available rect `r`
 pub fn popup_area(area: Rect, width: u16, height: u16) -> Rect {
@@ -35,4 +39,25 @@ pub fn calc_height(msg: &str, width: u16, area: Rect, footer: bool) -> u16 {
     (total_lines as u16)
         .saturating_add(4)
         .min(area.height.saturating_sub(4))
+}
+
+pub fn init_log() -> Result<tracing_appender::non_blocking::WorkerGuard> {
+    let app_name = std::env::var("CARGO_PKG_NAME").unwrap_or_else(|_| "rust-browser".to_string());
+    let cache_dir = dirs::cache_dir().unwrap_or_default();
+    let log_dir = cache_dir.join(&app_name).join("logs");
+    create_dir_all(&log_dir)?;
+
+    let appender = tracing_appender::rolling::daily(log_dir, app_name);
+    let (non_blocking, guard) = tracing_appender::non_blocking(appender);
+
+    let filter = EnvFilter::try_from_default_env()
+        .or_else(|_| EnvFilter::try_new("info"))
+        .context("Failed to create filter")?;
+
+    tracing_subscriber::registry()
+        .with(filter)
+        .with(layer().with_writer(non_blocking).with_ansi(false))
+        .init();
+
+    Ok(guard)
 }
