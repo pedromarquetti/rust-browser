@@ -1,5 +1,7 @@
 # Simple Rust Terminal Browser!
 
+[![release](https://github.com/pedromarquetti/rust-browser/actions/workflows/release.yml/badge.svg)](https://github.com/pedromarquetti/rust-browser/actions/workflows/release.yml) [![](https://img.shields.io/github/v/tag/pedromarquetti/rust-browser?label=Latest%20Version)](https://github.com/pedromarquetti/rust-browser/releases/latest)
+
 This is a very _very_ _very_ **very** basic TUI Browser!
 
 ## What is this application?
