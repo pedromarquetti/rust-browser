@@ -11,7 +11,7 @@ future?) webpages!
 
 ## Demo
 
-<img width="400"  alt="main-app-page" src="https://github.com/user-attachments/assets/28ed9be5-bfa8-471c-9462-3e6321b436cb" />
+<img width="400"  alt="image" src="https://github.com/user-attachments/assets/dbd9869c-7d98-4550-a6d4-b6eafb93b4ca" />
 <img width="400"  alt="SearXNG-example" src="https://github.com/user-attachments/assets/96ce6df4-d83c-4b83-a3c3-02232004fe4b" />
 
 
