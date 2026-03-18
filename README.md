@@ -9,6 +9,12 @@ This is a very _very_ _very_ **very** basic TUI Browser!
 This application aims to be basic and render text-only (maybe images in the
 future?) webpages!
 
+## Demo
+
+<img width="400"  alt="main-app-page" src="https://github.com/user-attachments/assets/28ed9be5-bfa8-471c-9462-3e6321b436cb" />
+<img width="400"  alt="SearXNG-example" src="https://github.com/user-attachments/assets/96ce6df4-d83c-4b83-a3c3-02232004fe4b" />
+
+
 ## Features
 
 1. search using [SearXNG](searxng.org) (other search engines can be implemented)
