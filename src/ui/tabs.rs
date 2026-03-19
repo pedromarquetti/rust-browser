@@ -31,12 +31,19 @@ impl StatefulWidget for &TabWidget {
     type State = State;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let titles = state
+        let titles: Vec<&str> = state
             .term_state
             .tab_state
             .tab_list
             .iter()
-            .map(|i| i.title.clone());
+            .map(|i| {
+                let len = i.title.len();
+                match i.title.get(0..15) {
+                    Some(_) => &i.title[0..15],
+                    None => &i.title[0..len],
+                }
+            })
+            .collect();
 
         Tabs::new(titles.clone())
             // TODO: add tab scrolling
