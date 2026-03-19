@@ -8,7 +8,7 @@ use scraper::{ElementRef, Html, Node, Selector};
 use crate::client::{
     WebClientTrait,
     fetcher::get_req,
-    parser::{ParsedContent, ParsedPage, ParserTrait},
+    parser::{InlineSegment, ParsedContent, ParsedPage, ParserTrait},
 };
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -48,8 +48,8 @@ impl WebClientTrait for FetchUrl {
 
 impl ParserTrait for FetchUrl {
     fn to_parsed_page(&self, url: Url, tab_id: i32) -> anyhow::Result<super::parser::ParsedPage> {
-        // let mut page_str: String = String::new().to_owned();
         let mut page_str: Text = Text::from("");
+        let mut page_links: Vec<InlineSegment> = vec![];
 
         let doc = Html::parse_document(&self.data);
 
@@ -88,7 +88,7 @@ impl ParserTrait for FetchUrl {
             }
         };
 
-        walk(&mut page_str, root, &url);
+        walk(&mut page_str, root, &url, &mut page_links);
 
         let raw_str = page_str.to_string();
 
@@ -102,7 +102,7 @@ impl ParserTrait for FetchUrl {
             tab_id,
             title: doc_title,
             url: url.to_string(),
-            // parsed_content: ParsedContent::Text(format!("{:#?}", page_str.style).into()),
+            page_links,
             parsed_content: ParsedContent::Text(page_str),
             raw_text: raw_str,
             ..Default::default()
@@ -120,7 +120,7 @@ impl FetchUrl {
 }
 
 /// main recursive func. to handle element/page rendering
-fn walk(parts: &mut Text, el: ElementRef, base_url: &Url) {
+fn walk(parts: &mut Text, el: ElementRef, base_url: &Url, page_links: &mut Vec<InlineSegment>) {
     // TODO: ignore non-text empty divs (currently, pages and being rendered with a bunch of new lines)
     let name = el.value().name();
 
@@ -131,31 +131,36 @@ fn walk(parts: &mut Text, el: ElementRef, base_url: &Url) {
     match name {
         "p" | "section" | "article" | "main" | "div" => {
             push_newline(parts);
-            iter_items(parts, el, base_url);
+            iter_items(parts, el, base_url, page_links);
         }
         "ul" | "ol" => {
             let is_ol = name == "ol";
-            handle_list(parts, el, base_url, is_ol)
+            handle_list(parts, el, base_url, is_ol, page_links)
         }
         "table" | "tbody" => {}
         "h1" | "h2" | "h3" => {
             push_newline(parts);
-            iter_items(parts, el, base_url);
+            iter_items(parts, el, base_url, page_links);
         }
         "img" => {
             push_non_empty_text(parts, "Image");
         }
         "a" => {
-            handle_links(parts, el, base_url);
+            handle_links(parts, el, base_url, page_links);
         }
         _ => {
-            iter_items(parts, el, base_url);
+            iter_items(parts, el, base_url, page_links);
         }
     }
 }
 
-//INFO: this was AI generated because i'm lazy, i'll have to check if this is  ok
-fn handle_list(parts: &mut Text, el: ElementRef, base_url: &Url, ordered: bool) {
+fn handle_list(
+    parts: &mut Text,
+    el: ElementRef,
+    base_url: &Url,
+    ordered: bool,
+    page_links: &mut Vec<InlineSegment>,
+) {
     let title = el
         .value()
         .attr("aria-label")
@@ -200,7 +205,7 @@ fn handle_list(parts: &mut Text, el: ElementRef, base_url: &Url, ordered: bool) 
                 } else {
                     Some("• ".to_string())
                 };
-                render_list_item(parts, child_ref, base_url, bullet.as_deref());
+                render_list_item(parts, child_ref, base_url, bullet.as_deref(), page_links);
                 index += 1;
             }
         }
@@ -210,8 +215,13 @@ fn handle_list(parts: &mut Text, el: ElementRef, base_url: &Url, ordered: bool) 
     push_newline(parts);
 }
 
-//INFO: this was AI generated because i'm lazy, i'll have to check if this is  ok
-fn render_list_item(parts: &mut Text, li: ElementRef, base_url: &Url, bullet: Option<&str>) {
+fn render_list_item(
+    parts: &mut Text,
+    li: ElementRef,
+    base_url: &Url,
+    bullet: Option<&str>,
+    page_links: &mut Vec<InlineSegment>,
+) {
     push_newline(parts);
     // Prefix with bullet/number if provided
     if let Some(b) = bullet {
@@ -219,26 +229,38 @@ fn render_list_item(parts: &mut Text, li: ElementRef, base_url: &Url, bullet: Op
     }
 
     // Collect all descendant text nodes, respecting simple inline formatting
-    iter_items(parts, li, base_url);
+    iter_items(parts, li, base_url, page_links);
 
     // End the list item with a newline
     push_newline(parts);
 }
 
-fn handle_links(parts: &mut Text, el: ElementRef, base_url: &Url) {
+fn handle_links(
+    parts: &mut Text,
+    el: ElementRef,
+    base_url: &Url,
+    page_links: &mut Vec<InlineSegment>,
+) {
     // Visible text of the link
     let link_text = el.text().collect::<Vec<_>>().join(" ").trim().to_string();
-    push_italic(parts, link_text + "(link)");
+    let label = if link_text.is_empty() {
+        "link".to_string()
+    } else {
+        link_text
+    };
+    // push_italic(parts, link_text + "(link)");
 
-    if el.has_children() {
-        iter_items(parts, el, base_url);
-    }
+    // if el.has_children() {
+    //     iter_items(parts, el, base_url, page_links);
+    // }
 
     if let Some(href) = el.value().attr("href") {
         // TODO: links make the page unreadable. Make this readable
         // this block would render link inside href
-        let _resolved = base_url.join(href).unwrap_or_else(|_| base_url.clone());
+        let resolved = base_url.join(href).unwrap_or_else(|_| base_url.clone());
         // push_italic(parts, format!("({})",resolved));
+        parts.push_span(label.clone().blue().underlined());
+        push_link_segment(page_links, label, resolved.to_string());
     } else {
         // No href, treat as text
         let text = el.text().collect::<Vec<_>>().join(" ");
@@ -271,7 +293,12 @@ fn should_skip(el: &ElementRef) -> bool {
 }
 
 /// main fn for filtering how tags are rendered
-fn iter_items(parts: &mut Text, el: ElementRef, base_url: &Url) {
+fn iter_items(
+    parts: &mut Text,
+    el: ElementRef,
+    base_url: &Url,
+    page_links: &mut Vec<InlineSegment>,
+) {
     let name = el.value().name();
 
     if is_skippable(name) || should_skip(&el) {
@@ -289,7 +316,7 @@ fn iter_items(parts: &mut Text, el: ElementRef, base_url: &Url) {
             Node::Element(_) => {
                 // Recurse into child elements
                 if let Some(child_ref) = ElementRef::wrap(child) {
-                    walk(parts, child_ref, base_url);
+                    walk(parts, child_ref, base_url, page_links);
                 }
             }
             _ => {}
@@ -361,4 +388,11 @@ where
 {
     parts.push_span(String::from(s.to_string()).bold());
     parts.push_span(" ");
+}
+
+fn push_link_segment(segments: &mut Vec<InlineSegment>, label: String, url: String) {
+    if !label.trim().is_empty() {
+        segments.push(InlineSegment::Link { label, url });
+        segments.push(InlineSegment::Text(" ".to_string()));
+    }
 }

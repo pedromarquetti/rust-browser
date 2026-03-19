@@ -74,8 +74,11 @@ impl State {
     }
 
     pub fn handle_up(&mut self) -> Result<()> {
-        if self.term_state.scroll_idx != 0 {
-            self.term_state.scroll_idx -= 1
+        if self.term_state.pop_up.is_some() {
+            if self.term_state.scroll_idx != 0 {
+                self.term_state.scroll_idx -= 1
+            }
+            return Ok(());
         }
 
         let tab = match self.get_tab() {
@@ -91,6 +94,11 @@ impl State {
     }
 
     pub fn handle_down(&mut self) -> Result<()> {
+        if self.term_state.pop_up.is_some() {
+            self.term_state.scroll_idx += 1;
+            return Ok(());
+        }
+
         let tab = match self.get_tab() {
             Ok(tab) => tab,
             Err(_) => return Ok(()),

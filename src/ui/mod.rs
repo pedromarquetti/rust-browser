@@ -13,6 +13,7 @@ use ratatui::{
 };
 
 use crate::{
+    client::parser::InlineSegment,
     state::input::InputType,
     ui::{
         input::Input,
@@ -104,6 +105,12 @@ impl Term {
                 KeyCode::Esc => {
                     state.close_popup();
                 }
+                KeyCode::Char('k') => {
+                    state.handle_up()?;
+                }
+                KeyCode::Char('j') => {
+                    state.handle_down()?;
+                }
                 _ => {
                     return Ok(());
                 }
@@ -129,6 +136,25 @@ impl Term {
             }
             (KeyCode::Char('/'), Mode::Normal) => state.new_input(InputType::StringSearch),
             (KeyCode::Char('n'), Mode::Normal) => state.term_state.tab_state.next_tab()?,
+            (KeyCode::Char('l'), Mode::Normal) => {
+                if let Some(tab) = state.term_state.tab_state.curr_tab() {
+                    if let Some(content) = &tab.content {
+                        let s: String = content
+                            .page_links
+                            .iter()
+                            .map(|i| match i {
+                                InlineSegment::Link { label, url } => {
+                                    return format!("\nlabel: {}\nurl: {}", label, url);
+                                }
+                                InlineSegment::Text(t) => {
+                                    return format!("{t}");
+                                }
+                            })
+                            .collect();
+                        state.create_popup(format!("{}", s), TermType::Info);
+                    }
+                }
+            }
             (KeyCode::Down, Mode::Normal) => {}
             (KeyCode::Up, Mode::Normal) => {}
             (KeyCode::Char('p'), Mode::Normal) => state.term_state.tab_state.prev_tab()?,

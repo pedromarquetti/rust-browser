@@ -37,6 +37,8 @@ impl StatefulWidget for &TabWidget {
             .tab_list
             .iter()
             .map(|i| {
+                // BUG: trim whitespace at the beggining of title
+                // Some pages have "     title".
                 let len = i.title.len();
                 match i.title.get(0..15) {
                     Some(_) => &i.title[0..15],
