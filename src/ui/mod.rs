@@ -104,6 +104,7 @@ impl Term {
             match e.code {
                 KeyCode::Esc => {
                     state.close_popup();
+                    state.term_state.scroll_idx = 0;
                 }
                 KeyCode::Char('k') => {
                     state.handle_up()?;
@@ -120,6 +121,7 @@ impl Term {
             (KeyCode::Esc, _) => {
                 if state.term_state.pop_up.is_some() {
                     state.close_popup();
+                    state.term_state.scroll_idx = 0;
                 }
 
                 state.cancel_input();
