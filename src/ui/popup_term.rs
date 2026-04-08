@@ -67,6 +67,8 @@ impl<'a> Widget for &PopupTerm<'a> {
         let mut msg = self.msg.to_string();
         msg.push_str("\n\nPress Esc to close!");
 
+        // TODO: the infobox should render a list if one is supplied 
+        // ListState for popup needs to be implemented
         match self.term_type {
             TermType::Error => {
                 let paragraph = Paragraph::new(msg)

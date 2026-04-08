@@ -60,7 +60,10 @@ impl ParserTrait for FetchUrl {
             .select(&main_sel)
             .filter(|node| {
                 let style = node.value().attr("style").unwrap_or("");
-                !style.contains("display: none") && !style.contains("visibility: hidden")
+                !style.contains("display: none")
+                    || !style.contains("display:none")
+                    || !style.contains("visibility: hidden")
+                    || !style.contains("visibility:hidden")
             })
             .collect();
 
@@ -285,7 +288,11 @@ fn should_skip(el: &ElementRef) -> bool {
     }
 
     if let Some(style) = el.value().attr("style") {
-        if style.contains("display: none") || style.contains("visibility: hidden") {
+        if style.contains("display: none")
+            || style.contains("visibility: hidden")
+            || style.contains("visibility:hidden")
+            || style.contains("display:none")
+        {
             return true;
         }
     }
