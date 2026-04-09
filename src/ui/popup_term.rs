@@ -1,16 +1,17 @@
 use std::fmt::Display;
 
-use anyhow::Result;
 use ratatui::{
     prelude::*,
     widgets::{Block, Clear, Paragraph, Wrap},
 };
 
-use crate::helpers::{calc_height, popup_area};
+use crate::{
+    helpers::{calc_height, popup_area},
+    state::term::{PopupData, PopupState},
+};
 
 #[derive(Debug, Default)]
-pub struct PopupTerm<'a> {
-    pub msg: &'a str,
+pub struct PopupTerm {
     pub idx: i32,
     pub term_type: TermType,
 }
@@ -22,6 +23,8 @@ pub enum TermType {
     Error,
     Warn,
 }
+
+
 
 impl Display for TermType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -39,36 +42,24 @@ impl Display for TermType {
     }
 }
 
-impl<'a> PopupTerm<'a> {
-    pub fn new(msg: &'a str, idx: i32, term_type: TermType) -> Self {
-        Self {
-            msg,
-            idx,
-            term_type,
-        }
-    }
-
-    pub fn create(&self, area: Rect, buf: &mut Buffer) -> Result<()> {
-        self.render(area, buf);
-        Ok(())
+impl PopupTerm {
+    pub fn new(idx: i32, term_type: TermType) -> Self {
+        Self { idx, term_type }
     }
 }
 
-impl<'a> Widget for &PopupTerm<'a> {
-    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
-    where
-        Self: Sized,
-    {
+impl StatefulWidget for &mut PopupTerm {
+    type State = PopupState;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let width = 80.min(area.width.saturating_sub(4));
-        let height = calc_height(self.msg, width, area, false);
+        let height = calc_height(&state.data.to_string(), width, area, false);
 
         let popup_area = popup_area(area, width, height);
 
-        let mut msg = self.msg.to_string();
+        let mut msg = state.data.to_string();
         msg.push_str("\n\nPress Esc to close!");
 
-        // TODO: the infobox should render a list if one is supplied 
-        // ListState for popup needs to be implemented
         match self.term_type {
             TermType::Error => {
                 let paragraph = Paragraph::new(msg)
@@ -109,3 +100,61 @@ impl<'a> Widget for &PopupTerm<'a> {
         }
     }
 }
+
+// impl Widget for &mut PopupTerm {
+//     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
+//     where
+//         Self: Sized,
+//     {
+//         let width = 80.min(area.width.saturating_sub(4));
+//         // let height = calc_height(self.data, width, area, false);
+//         let height = calc_height("", width, area, false);
+//
+//         let popup_area = popup_area(area, width, height);
+//
+//         // let mut msg = self.data.to_string();
+//         // msg.push_str("\n\nPress Esc to close!");
+//
+//         // TODO: the infobox should render a list if one is supplied
+//         // ListState for popup needs to be implemented
+//
+//         // match self.term_type {
+//         //     TermType::Error => {
+//         //         let paragraph = Paragraph::new(msg)
+//         //             .scroll((self.idx as u16, 0))
+//         //             .wrap(Wrap { trim: false })
+//         //             .block(
+//         //                 Block::bordered()
+//         //                     .title("Error")
+//         //                     .border_style(Style::default().fg(Color::Red).bg(Color::Black)),
+//         //             );
+//         //         Clear.render(popup_area, buf);
+//         //         Widget::render(paragraph, popup_area, buf);
+//         //     }
+//         //     TermType::Info => {
+//         //         let paragraph = Paragraph::new(msg)
+//         //             .scroll((self.idx as u16, 0))
+//         //             .wrap(Wrap { trim: false })
+//         //             .block(
+//         //                 Block::bordered()
+//         //                     .title("Info")
+//         //                     .border_style(Style::default().fg(Color::Blue).bg(Color::Black)),
+//         //             );
+//         //         Clear.render(popup_area, buf);
+//         //         Widget::render(paragraph, popup_area, buf);
+//         //     }
+//         //     TermType::Warn => {
+//         //         let paragraph = Paragraph::new(msg)
+//         //             .scroll((self.idx as u16, 0))
+//         //             .wrap(Wrap { trim: false })
+//         //             .block(
+//         //                 Block::bordered()
+//         //                     .title("Warning")
+//         //                     .border_style(Style::default().fg(Color::Yellow).bg(Color::Black)),
+//         //             );
+//         //         Clear.render(popup_area, buf);
+//         //         Widget::render(paragraph, popup_area, buf);
+//         //     }
+//         // }
+//     }
+// }

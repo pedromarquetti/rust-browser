@@ -2,7 +2,7 @@ use anyhow::Result;
 use ratatui::prelude::*;
 
 use crate::state::State;
-use crate::state::term::Mode;
+use crate::state::term::{Mode, PopupData};
 use crate::ui::popup_term::TermType;
 use crate::ui::tabs::TabWidget;
 
@@ -35,7 +35,7 @@ impl StatefulWidget for &mut Top {
             match TabWidget::new().create(area, buf, state) {
                 Ok(ok) => ok,
                 Err(err) => {
-                    state.create_popup(err.to_string(), TermType::Error);
+                    state.create_popup(PopupData::Text(err.to_string()), TermType::Error);
                 }
             }
         }

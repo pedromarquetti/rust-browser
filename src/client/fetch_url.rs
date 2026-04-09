@@ -251,15 +251,8 @@ fn handle_links(
     } else {
         link_text
     };
-    // push_italic(parts, link_text + "(link)");
-
-    // if el.has_children() {
-    //     iter_items(parts, el, base_url, page_links);
-    // }
 
     if let Some(href) = el.value().attr("href") {
-        // TODO: links make the page unreadable. Make this readable
-        // this block would render link inside href
         let resolved = base_url.join(href).unwrap_or_else(|_| base_url.clone());
         // push_italic(parts, format!("({})",resolved));
         parts.push_span(label.clone().blue().underlined());

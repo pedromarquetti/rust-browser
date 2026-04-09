@@ -9,7 +9,7 @@ use crate::{
     state::{
         input::{InputState, InputType},
         tab_state::Tab,
-        term::{Mode, PopupState, TermState},
+        term::{Mode, PopupData, PopupState, TermState},
         webclient_state::{SearchProvider, WebClientState},
     },
     ui::popup_term::TermType,
@@ -122,7 +122,10 @@ impl State {
                             page.curr_search_idx -= 1;
                         }
                         None => {
-                            self.create_popup(format!("No prev item!"), TermType::Error);
+                            self.create_popup(
+                                PopupData::Text(format!("No prev item!")),
+                                TermType::Error,
+                            );
                             return Ok(());
                         }
                     }
@@ -145,12 +148,15 @@ impl State {
                             page.curr_search_idx += 1;
                         }
                         None => {
-                            self.create_popup(format!("No next item!"), TermType::Error);
+                            self.create_popup(
+                                PopupData::Text(format!("No next item!")),
+                                TermType::Error,
+                            );
                             return Ok(());
                         }
                     }
                 } else {
-                    self.create_popup(format!("Empty list!"), TermType::Error);
+                    self.create_popup(PopupData::Text(format!("Empty list!")), TermType::Error);
                     return Ok(());
                 }
             }
@@ -216,8 +222,8 @@ impl State {
         Ok(())
     }
 
-    pub fn create_popup<S: Into<String>>(&mut self, msg: S, popup_type: TermType) {
-        self.term_state.pop_up = Some(PopupState::new(popup_type, msg))
+    pub fn create_popup(&mut self, data: PopupData, popup_type: TermType) {
+        self.term_state.pop_up = Some(PopupState::new(popup_type, data))
     }
 
     pub fn close_popup(&mut self) {
@@ -245,12 +251,18 @@ impl State {
             match res {
                 TaskResult::Loaded { tab_id, page } => {
                     if let Err(e) = self.term_state.tab_state.update_tab_content(tab_id, page) {
-                        self.create_popup(format!("Failed to update tab {}", e), TermType::Error);
+                        self.create_popup(
+                            PopupData::Text(format!("Failed to update tab {}", e)),
+                            TermType::Error,
+                        );
                     }
                 }
                 TaskResult::LoadError { tab_id, error } => {
                     self.create_popup(
-                        format!("Failed to load tab: {},\nmsg: {} ", tab_id, error),
+                        PopupData::Text(format!(
+                            "Failed to load tab: {},\nmsg: {} ",
+                            tab_id, error
+                        )),
                         TermType::Error,
                     );
                 }

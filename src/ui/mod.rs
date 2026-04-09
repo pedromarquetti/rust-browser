@@ -13,8 +13,8 @@ use ratatui::{
 };
 
 use crate::{
-    client::parser::InlineSegment,
-    state::input::InputType,
+    client::parser::{InlineSegment, PageType},
+    state::{input::InputType, term::PopupData},
     ui::{
         input::Input,
         popup_term::{PopupTerm, TermType},
@@ -58,7 +58,7 @@ impl Term {
                 Err(e) => {
                     // dont't crash if an error was returned after pressing the
                     // wrong key
-                    state.create_popup(e.to_string(), TermType::Error)
+                    state.create_popup(PopupData::Text(e.to_string()), TermType::Error)
                 }
             }
         }
@@ -137,10 +137,18 @@ impl Term {
                 state.new_input(InputType::WebSearch);
             }
             (KeyCode::Char('/'), Mode::Normal) => state.new_input(InputType::StringSearch),
+
+            (KeyCode::Char('e'), Mode::Normal) => {
+                state.create_popup(PopupData::Text("err".to_string()), TermType::Error)
+            }
+
             (KeyCode::Char('n'), Mode::Normal) => state.term_state.tab_state.next_tab()?,
             (KeyCode::Char('l'), Mode::Normal) => {
                 if let Some(tab) = state.term_state.tab_state.curr_tab() {
                     if let Some(content) = &tab.content {
+                        if content.page_type == PageType::Search {
+                            return Ok(());
+                        }
                         let s: String = content
                             .page_links
                             .iter()
@@ -153,7 +161,7 @@ impl Term {
                                 }
                             })
                             .collect();
-                        state.create_popup(format!("{}", s), TermType::Info);
+                        state.create_popup(PopupData::Text(s), TermType::Info);
                     }
                 }
             }
@@ -177,7 +185,7 @@ impl Term {
                         let url = curr_item.link.unwrap_or_default().url;
                         open::that_detached(&url)?;
                         state.create_popup(
-                            format!("{} opened in default app!", url),
+                            PopupData::Text(format!("{} opened in default app!", url)),
                             TermType::Info,
                         );
                     }
@@ -189,7 +197,7 @@ impl Term {
                     if let Some(content) = &tab.content {
                         open::that_detached(content.url.clone())?;
                         state.create_popup(
-                            format!("{} opened in default app!", content.url),
+                            PopupData::Text(format!("{} opened in default app!", content.url)),
                             TermType::Info,
                         );
                         return Ok(());
@@ -201,7 +209,10 @@ impl Term {
                 if let Some(input_state) = state.term_state.input_state.take() {
                     let val = input_state.input.value().to_string();
                     if val.is_empty() || val == " " || val.split_whitespace().next().is_none() {
-                        state.create_popup("No empty string allowed", TermType::Error);
+                        state.create_popup(
+                            PopupData::Text("No empty string allowed".to_string()),
+                            TermType::Error,
+                        );
                         return Ok(());
                     };
 
@@ -254,7 +265,7 @@ impl Term {
                                     } else {
                                         error!("pattern {val} not found in search");
                                         state.create_popup(
-                                            format!("Pattern {} not found!", val),
+                                            PopupData::Text(format!("Pattern {} not found!", val)),
                                             TermType::Error,
                                         );
                                     }
@@ -309,7 +320,7 @@ impl StatefulWidget for &mut Term {
         {
             Ok(ok) => ok,
             Err(err) => {
-                state.create_popup(err.to_string(), TermType::Error);
+                state.create_popup(PopupData::Text(err.to_string()), TermType::Error);
             }
         };
 
@@ -353,13 +364,8 @@ impl StatefulWidget for &mut Term {
             Input::new().create(area, buf, inputstate);
         }
 
-        if let Some(data) = state.term_state.pop_up.as_ref() {
-            PopupTerm::new(
-                &data.popup_msg,
-                state.term_state.scroll_idx,
-                data.popup_type,
-            )
-            .render(area, buf);
+        if let Some(data) = state.term_state.pop_up.as_mut() {
+            PopupTerm::new(state.term_state.scroll_idx, data.popup_type).render(area, buf, data);
         }
     }
 }

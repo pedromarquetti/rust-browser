@@ -17,7 +17,6 @@ pub enum InlineSegment {
     Link { label: String, url: String },
 }
 
-
 #[derive(Debug, Clone, Default)]
 pub struct ParsedPage {
     pub tab_id: i32,
@@ -167,7 +166,7 @@ impl Default for ParsedContent {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum PageType {
     Search,
     /// This represents a raw parsed HTML

@@ -1,6 +1,12 @@
-use std::fmt::Display;
+use std::{
+    default,
+    fmt::{Display, write},
+};
+
+use ratatui::widgets::ListState;
 
 use crate::{
+    client::parser::Link,
     state::{input::InputState, tab_state::TabState},
     ui::popup_term::TermType,
 };
@@ -20,15 +26,39 @@ pub struct TermState {
 #[derive(Debug, Clone, Default)]
 pub struct PopupState {
     // pop-up configs
-    pub popup_msg: String,
+    pub data: PopupData,
     pub popup_type: TermType,
+    pub list_state: ListState,
+}
+
+#[derive(Debug, Clone)]
+pub enum PopupData {
+    Text(String),
+    Links(Vec<Link>),
+}
+
+impl Display for PopupData {
+    /// default to printing entire data
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            Self::Text(t) => write!(f, "{t}"),
+            Self::Links(link) => write!(f, "{:?}", link),
+        }
+    }
+}
+
+impl Default for PopupData {
+    fn default() -> Self {
+        Self::Text(String::new())
+    }
 }
 
 impl PopupState {
-    pub fn new<S: Into<String>>(popup_type: TermType, popup_msg: S) -> Self {
+    pub fn new(popup_type: TermType, popup_msg: PopupData) -> Self {
         Self {
-            popup_msg: popup_msg.into(),
+            data: popup_msg,
             popup_type,
+            list_state: ListState::default(),
         }
     }
 }
