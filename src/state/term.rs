@@ -1,7 +1,4 @@
-use std::{
-    default,
-    fmt::{Display, write},
-};
+use std::fmt::Display;
 
 use ratatui::widgets::ListState;
 
@@ -25,8 +22,6 @@ pub struct TermState {
 
 #[derive(Debug, Clone, Default)]
 pub struct PopupState {
-    // pop-up configs
-    pub data: PopupData,
     pub popup_type: TermType,
     pub list_state: ListState,
 }
@@ -54,9 +49,8 @@ impl Default for PopupData {
 }
 
 impl PopupState {
-    pub fn new(popup_type: TermType, popup_msg: PopupData) -> Self {
+    pub fn new(popup_type: TermType) -> Self {
         Self {
-            data: popup_msg,
             popup_type,
             list_state: ListState::default(),
         }

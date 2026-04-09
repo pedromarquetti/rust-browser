@@ -61,3 +61,36 @@ pub fn init_log() -> Result<tracing_appender::non_blocking::WorkerGuard> {
 
     Ok(guard)
 }
+
+/// Helper function for handling text rendering (Vec<Line> line wrappin)
+pub fn parse_text<'l>(lines: &mut Vec<Line<'l>>, text: String, width: usize) {
+    if !text.is_empty() {
+        for line in text.lines() {
+            if line.len() <= width {
+                lines.push(Line::from(line.to_string()));
+            } else {
+                let words: Vec<&str> = line.split_whitespace().collect();
+                let mut curr_line = String::new();
+
+                for word in words {
+                    if curr_line.len() + word.len() < width {
+                        if !curr_line.is_empty() {
+                            curr_line.push(' ');
+                        }
+                        curr_line.push_str(word);
+                    } else {
+                        if !curr_line.is_empty() {
+                            lines.push(Line::from(curr_line.clone()));
+                        }
+                        curr_line = word.to_string();
+                    }
+                }
+                if !curr_line.is_empty() {
+                    lines.push(Line::from(curr_line));
+                }
+            }
+        }
+    }
+
+    lines.push(Line::from(""));
+}

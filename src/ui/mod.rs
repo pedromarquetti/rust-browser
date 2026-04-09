@@ -58,7 +58,7 @@ impl Term {
                 Err(e) => {
                     // dont't crash if an error was returned after pressing the
                     // wrong key
-                    state.create_popup(PopupData::Text(e.to_string()), TermType::Error)
+                    state.create_popup(TermType::err(PopupData::Text(e.to_string())))
                 }
             }
         }
@@ -137,11 +137,6 @@ impl Term {
                 state.new_input(InputType::WebSearch);
             }
             (KeyCode::Char('/'), Mode::Normal) => state.new_input(InputType::StringSearch),
-
-            (KeyCode::Char('e'), Mode::Normal) => {
-                state.create_popup(PopupData::Text("err".to_string()), TermType::Error)
-            }
-
             (KeyCode::Char('n'), Mode::Normal) => state.term_state.tab_state.next_tab()?,
             (KeyCode::Char('l'), Mode::Normal) => {
                 if let Some(tab) = state.term_state.tab_state.curr_tab() {
@@ -161,7 +156,7 @@ impl Term {
                                 }
                             })
                             .collect();
-                        state.create_popup(PopupData::Text(s), TermType::Info);
+                        state.create_popup(TermType::info(PopupData::Text(s)));
                     }
                 }
             }
@@ -184,10 +179,10 @@ impl Term {
                     if curr_item.link.is_some() {
                         let url = curr_item.link.unwrap_or_default().url;
                         open::that_detached(&url)?;
-                        state.create_popup(
-                            PopupData::Text(format!("{} opened in default app!", url)),
-                            TermType::Info,
-                        );
+                        state.create_popup(TermType::info(PopupData::Text(format!(
+                            "{} opened in default app!",
+                            url
+                        ))));
                     }
                     // early return to prevent double that_detached runs
                     return Ok(());
@@ -196,10 +191,10 @@ impl Term {
                 if let Some(tab) = state.term_state.tab_state.curr_tab() {
                     if let Some(content) = &tab.content {
                         open::that_detached(content.url.clone())?;
-                        state.create_popup(
-                            PopupData::Text(format!("{} opened in default app!", content.url)),
-                            TermType::Info,
-                        );
+                        state.create_popup(TermType::err(PopupData::Text(format!(
+                            "{} opened in default app!",
+                            content.url
+                        ))));
                         return Ok(());
                     }
                 }
@@ -209,10 +204,9 @@ impl Term {
                 if let Some(input_state) = state.term_state.input_state.take() {
                     let val = input_state.input.value().to_string();
                     if val.is_empty() || val == " " || val.split_whitespace().next().is_none() {
-                        state.create_popup(
-                            PopupData::Text("No empty string allowed".to_string()),
-                            TermType::Error,
-                        );
+                        state.create_popup(TermType::err(PopupData::Text(
+                            "No empty string allowed".to_string(),
+                        )));
                         return Ok(());
                     };
 
@@ -264,10 +258,9 @@ impl Term {
                                         tab.scroll_idx = page.pos[0].line as u16;
                                     } else {
                                         error!("pattern {val} not found in search");
-                                        state.create_popup(
-                                            PopupData::Text(format!("Pattern {} not found!", val)),
-                                            TermType::Error,
-                                        );
+                                        state.create_popup(TermType::err(PopupData::Text(
+                                            format!("Pattern {} not found!", val),
+                                        )));
                                     }
                                 }
                             }
@@ -320,7 +313,7 @@ impl StatefulWidget for &mut Term {
         {
             Ok(ok) => ok,
             Err(err) => {
-                state.create_popup(PopupData::Text(err.to_string()), TermType::Error);
+                state.create_popup(TermType::err(PopupData::Text(err.to_string())));
             }
         };
 
@@ -365,7 +358,7 @@ impl StatefulWidget for &mut Term {
         }
 
         if let Some(data) = state.term_state.pop_up.as_mut() {
-            PopupTerm::new(state.term_state.scroll_idx, data.popup_type).render(area, buf, data);
+            PopupTerm::new(state.term_state.scroll_idx).render(area, buf, data);
         }
     }
 }

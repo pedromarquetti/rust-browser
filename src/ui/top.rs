@@ -35,7 +35,7 @@ impl StatefulWidget for &mut Top {
             match TabWidget::new().create(area, buf, state) {
                 Ok(ok) => ok,
                 Err(err) => {
-                    state.create_popup(PopupData::Text(err.to_string()), TermType::Error);
+                    state.create_popup(TermType::err(PopupData::Text(err.to_string())));
                 }
             }
         }

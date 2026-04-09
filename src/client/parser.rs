@@ -1,10 +1,18 @@
 use std::fmt::Display;
 
 use anyhow::Result;
-use ratatui::{text::Text, widgets::ListState};
+use ratatui::{
+    style::Stylize,
+    text::{Line, Span, Text},
+    widgets::{ListItem, ListState},
+};
 use reqwest::Url;
 
-use crate::client::page_part::{Part, PartState};
+use crate::{
+    client::page_part::{Part, PartState},
+    helpers::parse_text,
+    state::ListTrait,
+};
 
 /// Trait to represent a valid parsed webpage
 pub trait ParserTrait {
@@ -201,6 +209,25 @@ pub struct Link {
     pub title: String,
     pub text: String,
     pub url: String,
+}
+
+impl ListTrait for Link {
+    fn to_list_item(&self, width: u16) -> ratatui::widgets::ListItem<'static> {
+        let width = width.saturating_sub(4) as usize;
+
+        let mut lines = vec![];
+
+        lines.push(Line::from(Span::raw(self.title.clone()).bold()));
+
+        parse_text(&mut lines, self.text.to_string(), width);
+
+        lines.push(Line::from(
+            Span::raw(format!("-> {}", self.url)).italic().cyan(),
+        ));
+
+        lines.push(Line::from(""));
+        ListItem::new(Text::from(lines))
+    }
 }
 
 impl Display for Link {

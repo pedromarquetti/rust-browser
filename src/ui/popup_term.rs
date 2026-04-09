@@ -2,40 +2,59 @@ use std::fmt::Display;
 
 use ratatui::{
     prelude::*,
-    widgets::{Block, Clear, Paragraph, Wrap},
+    widgets::{Block, Clear, List, ListItem, Paragraph, Wrap},
 };
 
 use crate::{
     helpers::{calc_height, popup_area},
-    state::term::{PopupData, PopupState},
+    state::{
+        ListTrait,
+        term::{PopupData, PopupState},
+    },
 };
 
 #[derive(Debug, Default)]
 pub struct PopupTerm {
     pub idx: i32,
-    pub term_type: TermType,
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone)]
 pub enum TermType {
-    #[default]
-    Info,
-    Error,
-    Warn,
+    Info(PopupData),
+    Error(PopupData),
+    Warn(PopupData),
 }
 
+impl TermType {
+    pub fn err(data: PopupData) -> Self {
+        TermType::Error(data)
+    }
 
+    pub fn info(data: PopupData) -> Self {
+        TermType::Info(data)
+    }
+
+    pub fn warn(data: PopupData) -> Self {
+        TermType::Warn(data)
+    }
+}
+
+impl Default for TermType {
+    fn default() -> Self {
+        Self::Info(PopupData::Text(String::new()))
+    }
+}
 
 impl Display for TermType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TermType::Info => {
+            TermType::Info(_) => {
                 write!(f, "info")
             }
-            TermType::Error => {
+            TermType::Error(_) => {
                 write!(f, "error")
             }
-            TermType::Warn => {
+            TermType::Warn(_) => {
                 write!(f, "warn")
             }
         }
@@ -43,8 +62,46 @@ impl Display for TermType {
 }
 
 impl PopupTerm {
-    pub fn new(idx: i32, term_type: TermType) -> Self {
-        Self { idx, term_type }
+    pub fn new(idx: i32) -> Self {
+        Self { idx }
+    }
+
+    pub fn handle_data_render(
+        &self,
+        data: PopupData,
+        area: Rect,
+        buf: &mut Buffer,
+        state: &mut PopupState,
+        block: Block,
+    ) {
+        let width = 80.min(area.width.saturating_sub(4));
+        match &data {
+            PopupData::Text(d) => {
+                let height = calc_height(d, width, area, false);
+                let popup_area = popup_area(area, width, height);
+                let paragraph = Paragraph::new(d.clone())
+                    .scroll((self.idx as u16, 0))
+                    .wrap(Wrap { trim: false })
+                    .block(block);
+                Clear.render(popup_area, buf);
+                Widget::render(paragraph, popup_area, buf);
+            }
+            PopupData::Links(links) => {
+                let height = calc_height(&links.len().to_string(), width, area, false);
+                let inner = block.inner(area);
+                let popup_area = popup_area(area, width, height);
+                let items: Vec<ListItem> = links.iter().map(|i| i.to_list_item(1)).collect();
+
+                let list = List::new(items.clone()).highlight_symbol(">");
+                let title = Line::from(format!("{} items", list.len()))
+                    .style(Style::default().fg(Color::DarkGray).italic());
+
+                let [list_area] = Layout::vertical([Constraint::Fill(1)]).areas(inner);
+                block.title(title).render(area, buf);
+                Clear.render(popup_area, buf);
+                StatefulWidget::render(list, list_area, buf, &mut state.list_state);
+            }
+        }
     }
 }
 
@@ -52,109 +109,25 @@ impl StatefulWidget for &mut PopupTerm {
     type State = PopupState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let width = 80.min(area.width.saturating_sub(4));
-        let height = calc_height(&state.data.to_string(), width, area, false);
-
-        let popup_area = popup_area(area, width, height);
-
-        let mut msg = state.data.to_string();
-        msg.push_str("\n\nPress Esc to close!");
-
-        match self.term_type {
-            TermType::Error => {
-                let paragraph = Paragraph::new(msg)
-                    .scroll((self.idx as u16, 0))
-                    .wrap(Wrap { trim: false })
-                    .block(
-                        Block::bordered()
-                            .title("Error")
-                            .border_style(Style::default().fg(Color::Red).bg(Color::Black)),
-                    );
-                Clear.render(popup_area, buf);
-                Widget::render(paragraph, popup_area, buf);
+        match state.popup_type.clone() {
+            TermType::Error(data) => {
+                let block = Block::bordered()
+                    .title("Error")
+                    .border_style(Style::default().fg(Color::Red).bg(Color::Black));
+                self.handle_data_render(data, area, buf, state, block);
             }
-            TermType::Info => {
-                let paragraph = Paragraph::new(msg)
-                    .scroll((self.idx as u16, 0))
-                    .wrap(Wrap { trim: false })
-                    .block(
-                        Block::bordered()
-                            .title("Info")
-                            .border_style(Style::default().fg(Color::Blue).bg(Color::Black)),
-                    );
-                Clear.render(popup_area, buf);
-                Widget::render(paragraph, popup_area, buf);
+            TermType::Info(data) => {
+                let block = Block::bordered()
+                    .title("Info")
+                    .border_style(Style::default().fg(Color::Blue).bg(Color::Black));
+                self.handle_data_render(data, area, buf, state, block);
             }
-            TermType::Warn => {
-                let paragraph = Paragraph::new(msg)
-                    .scroll((self.idx as u16, 0))
-                    .wrap(Wrap { trim: false })
-                    .block(
-                        Block::bordered()
-                            .title("Warning")
-                            .border_style(Style::default().fg(Color::Yellow).bg(Color::Black)),
-                    );
-                Clear.render(popup_area, buf);
-                Widget::render(paragraph, popup_area, buf);
+            TermType::Warn(data) => {
+                let block = Block::bordered()
+                    .title("Warning")
+                    .border_style(Style::default().fg(Color::Yellow).bg(Color::Black));
+                self.handle_data_render(data, area, buf, state, block);
             }
         }
     }
 }
-
-// impl Widget for &mut PopupTerm {
-//     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
-//     where
-//         Self: Sized,
-//     {
-//         let width = 80.min(area.width.saturating_sub(4));
-//         // let height = calc_height(self.data, width, area, false);
-//         let height = calc_height("", width, area, false);
-//
-//         let popup_area = popup_area(area, width, height);
-//
-//         // let mut msg = self.data.to_string();
-//         // msg.push_str("\n\nPress Esc to close!");
-//
-//         // TODO: the infobox should render a list if one is supplied
-//         // ListState for popup needs to be implemented
-//
-//         // match self.term_type {
-//         //     TermType::Error => {
-//         //         let paragraph = Paragraph::new(msg)
-//         //             .scroll((self.idx as u16, 0))
-//         //             .wrap(Wrap { trim: false })
-//         //             .block(
-//         //                 Block::bordered()
-//         //                     .title("Error")
-//         //                     .border_style(Style::default().fg(Color::Red).bg(Color::Black)),
-//         //             );
-//         //         Clear.render(popup_area, buf);
-//         //         Widget::render(paragraph, popup_area, buf);
-//         //     }
-//         //     TermType::Info => {
-//         //         let paragraph = Paragraph::new(msg)
-//         //             .scroll((self.idx as u16, 0))
-//         //             .wrap(Wrap { trim: false })
-//         //             .block(
-//         //                 Block::bordered()
-//         //                     .title("Info")
-//         //                     .border_style(Style::default().fg(Color::Blue).bg(Color::Black)),
-//         //             );
-//         //         Clear.render(popup_area, buf);
-//         //         Widget::render(paragraph, popup_area, buf);
-//         //     }
-//         //     TermType::Warn => {
-//         //         let paragraph = Paragraph::new(msg)
-//         //             .scroll((self.idx as u16, 0))
-//         //             .wrap(Wrap { trim: false })
-//         //             .block(
-//         //                 Block::bordered()
-//         //                     .title("Warning")
-//         //                     .border_style(Style::default().fg(Color::Yellow).bg(Color::Black)),
-//         //             );
-//         //         Clear.render(popup_area, buf);
-//         //         Widget::render(paragraph, popup_area, buf);
-//         //     }
-//         // }
-//     }
-// }

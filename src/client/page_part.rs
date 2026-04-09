@@ -6,7 +6,7 @@ use ratatui::{
     widgets::ListItem,
 };
 
-use crate::client::parser::Link;
+use crate::{client::parser::Link, helpers::parse_text, state::ListTrait};
 
 #[derive(Debug, Clone)]
 /// This struct represents a Page part:
@@ -119,9 +119,11 @@ impl Part {
             state: PartState::Link,
         }
     }
+}
 
+impl ListTrait for Part {
     /// method for creating wrapped text and making it a ListItem
-    pub fn to_list_item(&self, width: u16) -> ListItem<'static> {
+    fn to_list_item(&self, width: u16) -> ListItem<'static> {
         let width = width.saturating_sub(4) as usize;
 
         match self.state {
@@ -182,35 +184,4 @@ impl Content {
     }
 }
 
-/// Helper function for handling text rendering (Vec<Line> line wrappin)
-fn parse_text<'l>(lines: &mut Vec<Line<'l>>, text: String, width: usize) {
-    if !text.is_empty() {
-        for line in text.lines() {
-            if line.len() <= width {
-                lines.push(Line::from(line.to_string()));
-            } else {
-                let words: Vec<&str> = line.split_whitespace().collect();
-                let mut curr_line = String::new();
 
-                for word in words {
-                    if curr_line.len() + word.len() < width {
-                        if !curr_line.is_empty() {
-                            curr_line.push(' ');
-                        }
-                        curr_line.push_str(word);
-                    } else {
-                        if !curr_line.is_empty() {
-                            lines.push(Line::from(curr_line.clone()));
-                        }
-                        curr_line = word.to_string();
-                    }
-                }
-                if !curr_line.is_empty() {
-                    lines.push(Line::from(curr_line));
-                }
-            }
-        }
-    }
-
-    lines.push(Line::from(""));
-}

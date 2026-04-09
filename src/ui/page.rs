@@ -1,5 +1,5 @@
 use crate::client::parser::{PageType, ParsedContent, StrPos};
-use crate::state::State;
+use crate::state::{ListTrait, State};
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Widget, Wrap};
 
