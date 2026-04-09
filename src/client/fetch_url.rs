@@ -8,7 +8,7 @@ use scraper::{ElementRef, Html, Node, Selector};
 use crate::client::{
     WebClientTrait,
     fetcher::get_req,
-    parser::{InlineSegment, ParsedContent, ParsedPage, ParserTrait},
+    parser::{Link, ParsedContent, ParsedPage, ParserTrait},
 };
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -49,7 +49,7 @@ impl WebClientTrait for FetchUrl {
 impl ParserTrait for FetchUrl {
     fn to_parsed_page(&self, url: Url, tab_id: i32) -> anyhow::Result<super::parser::ParsedPage> {
         let mut page_str: Text = Text::from("");
-        let mut page_links: Vec<InlineSegment> = vec![];
+        let mut page_links: Vec<Link> = vec![];
 
         let doc = Html::parse_document(&self.data);
 
@@ -123,7 +123,7 @@ impl FetchUrl {
 }
 
 /// main recursive func. to handle element/page rendering
-fn walk(parts: &mut Text, el: ElementRef, base_url: &Url, page_links: &mut Vec<InlineSegment>) {
+fn walk(parts: &mut Text, el: ElementRef, base_url: &Url, page_links: &mut Vec<Link>) {
     // TODO: ignore non-text empty divs (currently, pages and being rendered with a bunch of new lines)
     let name = el.value().name();
 
@@ -162,7 +162,7 @@ fn handle_list(
     el: ElementRef,
     base_url: &Url,
     ordered: bool,
-    page_links: &mut Vec<InlineSegment>,
+    page_links: &mut Vec<Link>,
 ) {
     let title = el
         .value()
@@ -223,7 +223,7 @@ fn render_list_item(
     li: ElementRef,
     base_url: &Url,
     bullet: Option<&str>,
-    page_links: &mut Vec<InlineSegment>,
+    page_links: &mut Vec<Link>,
 ) {
     push_newline(parts);
     // Prefix with bullet/number if provided
@@ -238,12 +238,7 @@ fn render_list_item(
     push_newline(parts);
 }
 
-fn handle_links(
-    parts: &mut Text,
-    el: ElementRef,
-    base_url: &Url,
-    page_links: &mut Vec<InlineSegment>,
-) {
+fn handle_links(parts: &mut Text, el: ElementRef, base_url: &Url, page_links: &mut Vec<Link>) {
     // Visible text of the link
     let link_text = el.text().collect::<Vec<_>>().join(" ").trim().to_string();
     let label = if link_text.is_empty() {
@@ -293,12 +288,7 @@ fn should_skip(el: &ElementRef) -> bool {
 }
 
 /// main fn for filtering how tags are rendered
-fn iter_items(
-    parts: &mut Text,
-    el: ElementRef,
-    base_url: &Url,
-    page_links: &mut Vec<InlineSegment>,
-) {
+fn iter_items(parts: &mut Text, el: ElementRef, base_url: &Url, page_links: &mut Vec<Link>) {
     let name = el.value().name();
 
     if is_skippable(name) || should_skip(&el) {
@@ -390,9 +380,12 @@ where
     parts.push_span(" ");
 }
 
-fn push_link_segment(segments: &mut Vec<InlineSegment>, label: String, url: String) {
+fn push_link_segment(segments: &mut Vec<Link>, label: String, url: String) {
     if !label.trim().is_empty() {
-        segments.push(InlineSegment::Link { label, url });
-        segments.push(InlineSegment::Text(" ".to_string()));
+        segments.push(Link {
+            title: label.clone(),
+            text: label,
+            url,
+        });
     }
 }

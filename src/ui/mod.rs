@@ -13,7 +13,7 @@ use ratatui::{
 };
 
 use crate::{
-    client::parser::{InlineSegment, PageType},
+    client::parser::PageType,
     state::{input::InputType, term::PopupData},
     ui::{
         input::Input,
@@ -147,13 +147,8 @@ impl Term {
                         let s: String = content
                             .page_links
                             .iter()
-                            .map(|i| match i {
-                                InlineSegment::Link { label, url } => {
-                                    return format!("\nlabel: {}\nurl: {}", label, url);
-                                }
-                                InlineSegment::Text(t) => {
-                                    return format!("{t}");
-                                }
+                            .map(|i| {
+                                return format!("\nlabel: {}\nurl: {}", i.text, i.url);
                             })
                             .collect();
                         state.create_popup(TermType::info(PopupData::Text(s)));

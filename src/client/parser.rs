@@ -19,18 +19,12 @@ pub trait ParserTrait {
     fn to_parsed_page(&self, url: Url, tab_id: i32) -> Result<ParsedPage>;
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum InlineSegment {
-    Text(String),
-    Link { label: String, url: String },
-}
-
 #[derive(Debug, Clone, Default)]
 pub struct ParsedPage {
     pub tab_id: i32,
     pub title: String,
     pub url: String,
-    pub page_links: Vec<InlineSegment>,
+    pub page_links: Vec<Link>,
     pub parsed_content: ParsedContent,
     pub linecount: usize,
     pub wordcount: usize,
