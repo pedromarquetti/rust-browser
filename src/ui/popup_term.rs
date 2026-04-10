@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use ratatui::{
     prelude::*,
-    widgets::{Block, Clear, List, ListItem, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
 };
 
 use crate::{
@@ -26,6 +26,12 @@ pub enum TermType {
 }
 
 impl TermType {
+    pub fn get_data(&self) -> &PopupData {
+        match self {
+            Self::Info(d) | Self::Warn(d) | Self::Error(d) => return d,
+        }
+    }
+
     pub fn err(data: PopupData) -> Self {
         TermType::Error(data)
     }
@@ -77,9 +83,10 @@ impl PopupTerm {
         let width = 80.min(area.width.saturating_sub(4));
         match &data {
             PopupData::Text(d) => {
-                let height = calc_height(d, width, area, false);
+                let msg = format!("{d}\n\nPress ESC to close");
+                let height = calc_height(&msg, width, area, false);
                 let popup_area = popup_area(area, width, height);
-                let paragraph = Paragraph::new(d.clone())
+                let paragraph = Paragraph::new(msg)
                     .scroll((self.idx as u16, 0))
                     .wrap(Wrap { trim: false })
                     .block(block);
@@ -87,18 +94,24 @@ impl PopupTerm {
                 Widget::render(paragraph, popup_area, buf);
             }
             PopupData::Links(links) => {
-                let height = calc_height(&links.len().to_string(), width, area, false);
+                let s: String = links
+                    .iter()
+                    .map(|i| {
+                        return format!("\nlabel: {}\nurl: {}", i.text, i.url);
+                    })
+                    .collect();
                 let inner = block.inner(area);
-                let popup_area = popup_area(area, width, height);
-                let items: Vec<ListItem> = links.iter().map(|i| i.to_list_item(1)).collect();
+                let height = calc_height(&s, width, inner, false);
+                let popup_area = popup_area(inner, width, height);
+                let items: Vec<ListItem> = links.iter().map(|i| i.to_list_item(width)).collect();
 
                 let list = List::new(items.clone()).highlight_symbol(">");
                 let title = Line::from(format!("{} items", list.len()))
                     .style(Style::default().fg(Color::DarkGray).italic());
 
-                let [list_area] = Layout::vertical([Constraint::Fill(1)]).areas(inner);
-                block.title(title).render(area, buf);
+                let [list_area] = Layout::vertical([Constraint::Fill(1)]).areas(popup_area);
                 Clear.render(popup_area, buf);
+                block.render(popup_area, buf);
                 StatefulWidget::render(list, list_area, buf, &mut state.list_state);
             }
         }

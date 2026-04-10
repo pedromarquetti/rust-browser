@@ -144,14 +144,9 @@ impl Term {
                         if content.page_type == PageType::Search {
                             return Ok(());
                         }
-                        let s: String = content
-                            .page_links
-                            .iter()
-                            .map(|i| {
-                                return format!("\nlabel: {}\nurl: {}", i.text, i.url);
-                            })
-                            .collect();
-                        state.create_popup(TermType::info(PopupData::Text(s)));
+                        state.create_popup(TermType::info(PopupData::Links(
+                            content.page_links.clone(),
+                        )));
                     }
                 }
             }
