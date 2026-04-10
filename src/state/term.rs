@@ -50,9 +50,12 @@ impl Default for PopupData {
 
 impl PopupState {
     pub fn new(popup_type: TermType) -> Self {
+        let mut state = ListState::default();
+        // the list was jumping ramdomly (?)
+        state.select(Some(0));
         Self {
             popup_type,
-            list_state: ListState::default(),
+            list_state: state,
         }
     }
 }

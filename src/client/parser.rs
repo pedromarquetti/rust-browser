@@ -211,7 +211,7 @@ impl ListTrait for Link {
 
         let mut lines = vec![];
 
-        lines.push(Line::from(Span::raw(self.title.clone()).bold()));
+        // lines.push(Line::from(Span::raw(self.title.clone()).bold()));
 
         parse_text(&mut lines, self.text.to_string(), width);
 
@@ -220,6 +220,7 @@ impl ListTrait for Link {
         ));
 
         lines.push(Line::from(""));
+
         ListItem::new(Text::from(lines))
     }
 }

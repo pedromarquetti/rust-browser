@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use ratatui::{
     prelude::*,
-    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
+    widgets::{Block, Clear, List, ListItem, Paragraph, Wrap},
 };
 
 use crate::{
@@ -97,22 +97,31 @@ impl PopupTerm {
                 let s: String = links
                     .iter()
                     .map(|i| {
-                        return format!("\nlabel: {}\nurl: {}", i.text, i.url);
+                        return format!("{}{}", i.text, i.url);
                     })
                     .collect();
-                let inner = block.inner(area);
-                let height = calc_height(&s, width, inner, false);
-                let popup_area = popup_area(inner, width, height);
+                let height = calc_height(&s, width, area, false);
+                let popup_area = popup_area(area, width, height);
+
+                Clear.render(popup_area, buf);
+
+                let inner = block.inner(popup_area);
+
+                block.render(popup_area, buf);
+
                 let items: Vec<ListItem> = links.iter().map(|i| i.to_list_item(width)).collect();
 
-                let list = List::new(items.clone()).highlight_symbol(">");
-                let title = Line::from(format!("{} items", list.len()))
-                    .style(Style::default().fg(Color::DarkGray).italic());
+                let list = List::new(items.clone())
+                    .highlight_style(
+                        Style::new()
+                            .italic()
+                            .fg(Color::Black)
+                            .bg(Color::White)
+                            .bold(),
+                    )
+                    .highlight_symbol(">");
 
-                let [list_area] = Layout::vertical([Constraint::Fill(1)]).areas(popup_area);
-                Clear.render(popup_area, buf);
-                block.render(popup_area, buf);
-                StatefulWidget::render(list, list_area, buf, &mut state.list_state);
+                StatefulWidget::render(list, inner, buf, &mut state.list_state);
             }
         }
     }

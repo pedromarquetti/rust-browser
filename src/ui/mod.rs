@@ -108,9 +108,14 @@ impl Term {
                 }
                 KeyCode::Char('k') => {
                     state.handle_up()?;
+                    return Ok(());
                 }
                 KeyCode::Char('j') => {
                     state.handle_down()?;
+                    return Ok(());
+                }
+                KeyCode::Char('o') | KeyCode::Enter => {
+                    // if there's a popup, the user should be able to open new tabs'
                 }
                 _ => {
                     return Ok(());
@@ -155,7 +160,22 @@ impl Term {
             (KeyCode::Char('p'), Mode::Normal) => state.term_state.tab_state.prev_tab()?,
             (KeyCode::Char('d'), Mode::Normal) => state.term_state.tab_state.del_tab()?,
             (KeyCode::Char('o'), Mode::Normal) => {
-                // current selected item by cursor
+                if let Some(popup) = state.term_state.pop_up.as_ref() {
+                    // open current popup list item inside this app
+                    let idx = popup.list_state.selected().unwrap_or(0);
+                    let data = popup.popup_type.get_data();
+                    match data {
+                        PopupData::Links(links) => {
+                            if let Some(link) = links.get(idx) {
+                                let url = Url::from_str(&link.url)?;
+                                state.go_to_url(url)?;
+                                state.close_popup();
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                // current selected item by cursor (search tab) - open in this app 
                 if let Ok(item) = state.term_state.tab_state.get_selected_item() {
                     if item.link.is_some() {
                         let url = Url::from_str(&item.link.unwrap_or_default().url)?;
@@ -165,6 +185,29 @@ impl Term {
             }
             // open in default browser
             (KeyCode::Enter, Mode::Normal) => {
+                if let Some(popup) = state.term_state.pop_up.as_ref() {
+                    // open page links in default app/browser
+                    let idx = popup.list_state.selected().unwrap_or(0);
+                    let data = popup.popup_type.get_data();
+                    match data {
+                        PopupData::Links(links) => {
+                            if let Some(link) = links.get(idx) {
+                                let url = Url::from_str(&link.url)?;
+                                state.close_popup();
+                                open::that_detached(url.to_string().clone())?;
+                                state.create_popup(TermType::info(PopupData::Text(format!(
+                                    "{} opened in default app!",
+                                    url
+                                ))));
+                                // prevent "search result" block below from being ran 
+                                return Ok(());
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                // search result
                 if let Ok(curr_item) = state.term_state.tab_state.get_selected_item() {
                     if curr_item.link.is_some() {
                         let url = curr_item.link.unwrap_or_default().url;
@@ -179,9 +222,10 @@ impl Term {
                 }
                 // because this runs if there's an active tab with content
                 if let Some(tab) = state.term_state.tab_state.curr_tab() {
+                    // open current tab
                     if let Some(content) = &tab.content {
                         open::that_detached(content.url.clone())?;
-                        state.create_popup(TermType::err(PopupData::Text(format!(
+                        state.create_popup(TermType::info(PopupData::Text(format!(
                             "{} opened in default app!",
                             content.url
                         ))));
