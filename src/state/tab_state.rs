@@ -99,17 +99,6 @@ impl TabState {
         Ok(())
     }
 
-    // fn fix_idx(&mut self) {
-    //     // if next idx is != next tablist
-    //     // change next item id (+1)
-    //     for (i, tab) in self.tab_list.iter_mut().enumerate() {
-    //         tab.id = i as i32;
-    //         if let Some(content) = tab.content.as_mut() {
-    //             content.tab_id = i as i32
-    //         }
-    //     }
-    // }
-   
     pub fn new_tab<S: Into<String>>(&mut self, title: S, content_type: TaskType) -> Result<i32> {
         let tab = Tab::new(self.tab_list.len() as i32, title.into(), content_type);
         let id = tab.id.clone();
