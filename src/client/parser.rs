@@ -26,8 +26,9 @@ pub struct ParsedPage {
     pub url: String,
     pub page_links: Vec<Link>,
     pub parsed_content: ParsedContent,
-    pub linecount: usize,
-    pub wordcount: usize,
+    pub linecount: Option<usize>,
+    pub wordcount: Option<usize>,
+    pub prev_width:Option<usize>,
     pub pos: Vec<StrPos>,
     pub curr_search_idx: u16,
     pub raw_text: String,
@@ -151,8 +152,8 @@ impl ParsedPage {
             }
         }
 
-        self.wordcount = wordcount;
-        self.linecount = wrapped.lines().count();
+        self.wordcount = Some(wordcount);
+        self.linecount = Some(wrapped.lines().count())
     }
 }
 

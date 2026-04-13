@@ -61,7 +61,11 @@ impl From<&Part> for ListItem<'_> {
                 Text::from(lines)
             }
             PartState::Link => {
-                let link = value.link.clone().unwrap_or_default();
+                let link: &Link = match value.link.as_ref() {
+                    Some(link) => link,
+                    None => &Link::default(),
+                };
+
                 let mut lines = vec![];
 
                 // Add title if present
@@ -183,5 +187,3 @@ impl Content {
         }
     }
 }
-
-

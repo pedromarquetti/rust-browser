@@ -33,9 +33,7 @@ async fn run_app() -> Result<()> {
 
     let config: Configs = Configs::new()?;
 
-    let state = &mut State {
-        ..Default::default()
-    };
+    let state = &mut State::new()?;
 
     state.load_configs(config);
 

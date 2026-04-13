@@ -1,7 +1,7 @@
 use crate::{client::parser::ParsedPage, state::webclient_state::WebClientState};
 
 use anyhow::Result;
-use reqwest::Url;
+use reqwest::{Client, Url};
 
 pub mod fetch_url;
 pub mod fetcher;
@@ -15,7 +15,13 @@ pub trait WebClientTrait {
         query: String,
         state: &mut WebClientState,
         tab_id: i32,
+        client: Client,
     ) -> impl Future<Output = Result<ParsedPage>> + Send;
 
-    fn fetch_url(&self, url: Url,tab_id: i32) -> impl Future<Output = Result<ParsedPage>> + Send;
+    fn fetch_url(
+        &self,
+        url: Url,
+        tab_id: i32,
+        client: Client,
+    ) -> impl Future<Output = Result<ParsedPage>> + Send;
 }

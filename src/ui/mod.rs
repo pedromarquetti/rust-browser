@@ -86,7 +86,7 @@ impl Term {
 
     /// main event handler
     pub fn handle_event(&mut self, state: &mut State) -> Result<()> {
-        if event::poll(Duration::from_nanos(100))? {
+        if event::poll(Duration::from_millis(16))? {
             match event::read()? {
                 // handles only key press
                 Event::Key(event) if event.kind == KeyEventKind::Press => {

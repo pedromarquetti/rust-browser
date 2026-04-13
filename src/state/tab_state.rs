@@ -101,7 +101,7 @@ impl TabState {
 
     pub fn new_tab<S: Into<String>>(&mut self, title: S, content_type: TaskType) -> Result<i32> {
         let tab = Tab::new(self.tab_list.len() as i32, title.into(), content_type);
-        let id = tab.id.clone();
+        let id = tab.id;
         self.tab_list.push(tab);
         self.idx = id;
         Ok(id)

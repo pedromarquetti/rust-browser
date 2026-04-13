@@ -35,8 +35,8 @@ impl ParserTrait for SearxngResult {
         let mut content: Vec<Part> = vec![];
 
         self.infoboxes.iter().for_each(|i| {
-            content.push(Part::text(i.infobox.clone()));
-            content.push(Part::text(i.content.clone()));
+            content.push(Part::text(i.infobox.to_string()));
+            content.push(Part::text(i.content.to_string()));
         });
 
         self.results.iter().for_each(|i| {
@@ -72,6 +72,7 @@ impl WebClientTrait for SearxngResult {
         query: String,
         state: &mut crate::state::webclient_state::WebClientState,
         tab_id: i32,
+        client: Client,
     ) -> anyhow::Result<ParsedPage> {
         if state.search_provider.url.is_empty() {
             return Err(anyhow!("SearXNG URL not set!"));
@@ -89,10 +90,6 @@ impl WebClientTrait for SearxngResult {
             .append_pair("format", "json");
 
         state.is_loading = true;
-
-        let client = Client::builder()
-            .build()
-            .context("Failed creating Client")?;
 
         let req = get_req(client, url.clone()).await?;
 
@@ -115,7 +112,12 @@ impl WebClientTrait for SearxngResult {
         req.to_parsed_page(url, tab_id)
     }
 
-    async fn fetch_url(&self, _url: Url, _tab_id: i32) -> anyhow::Result<ParsedPage> {
+    async fn fetch_url(
+        &self,
+        _url: Url,
+        _tab_id: i32,
+        _client: Client,
+    ) -> anyhow::Result<ParsedPage> {
         bail!("This provider does not implement direct url!")
     }
 }

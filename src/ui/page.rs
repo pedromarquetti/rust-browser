@@ -68,10 +68,19 @@ impl StatefulWidget for &mut Page {
                 },
                 PageType::Raw => {
                     Clear.render(inner, buf);
-                    // wrapping
-                    content.to_wrapped_string(state.term_state.cols);
-                    let wordcount =
-                        format!("words: {} lines: {}", content.wordcount, content.linecount);
+                    // Conditionally wrapping (only if terminal size changes)
+                    let needs_wrap = content.prev_width != Some(available_width as usize);
+
+                    if needs_wrap {
+                        content.to_wrapped_string(state.term_state.cols);
+                        content.prev_width = Some(available_width as usize);
+                    }
+
+                    let wordcount = format!(
+                        "words: {} lines: {}",
+                        content.wordcount.unwrap_or_default(),
+                        content.linecount.unwrap_or_default()
+                    );
                     let pos: &StrPos = {
                         match content.pos.get(content.curr_search_idx as usize) {
                             Some(i) => i,

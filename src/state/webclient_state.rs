@@ -3,11 +3,13 @@ use crate::{
     config::webclient_config::AvailableSearchEngines,
 };
 use anyhow::{Result, anyhow};
+use reqwest::Client;
 
 #[derive(Debug, Clone, Default)]
 pub struct WebClientState {
     pub search_provider: SearchProvider,
     pub is_loading: bool,
+    pub web_client: Client,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -27,7 +29,12 @@ impl SearchProvider {
 
 impl WebClientState {
     /// shared state to search the web
-    pub async fn search(&mut self, query: String, tab_id: i32) -> Result<ParsedPage> {
+    pub async fn search(
+        &mut self,
+        query: String,
+        tab_id: i32,
+        client: Client,
+    ) -> Result<ParsedPage> {
         if self.search_provider.url.is_empty() || query.is_empty() {
             return Err(anyhow!(format!(
                 "Search Provider URL OR query is empty!\nurl {}\n query {}",
@@ -38,7 +45,7 @@ impl WebClientState {
         match self.search_provider.name {
             AvailableSearchEngines::SearXNG => {
                 let page = SearxngResult::new()
-                    .search(query.clone(), self, tab_id)
+                    .search(query.clone(), self, tab_id, client)
                     .await
                     .map_err(|err| {
                         anyhow!("WebClient search returned error: {}", err.to_string())

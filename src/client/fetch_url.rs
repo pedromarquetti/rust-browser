@@ -11,8 +11,6 @@ use crate::client::{
     parser::{Link, ParsedContent, ParsedPage, ParserTrait},
 };
 
-static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
-
 #[derive(Clone, PartialEq, Eq)]
 pub struct FetchUrl {
     url: Url,
@@ -26,12 +24,17 @@ impl WebClientTrait for FetchUrl {
         _query: String,
         _state: &mut crate::state::webclient_state::WebClientState,
         _tab_id: i32,
+        _client: Client,
     ) -> anyhow::Result<super::parser::ParsedPage> {
         bail!("FetchUrl does not implement searching")
     }
 
-    async fn fetch_url(&self, url: Url, tab_id: i32) -> anyhow::Result<super::parser::ParsedPage> {
-        let client = Client::builder().user_agent(APP_USER_AGENT).build()?;
+    async fn fetch_url(
+        &self,
+        url: Url,
+        tab_id: i32,
+        client: Client,
+    ) -> anyhow::Result<super::parser::ParsedPage> {
         let req = get_req(client, url.clone()).await?;
 
         if !req.status().is_success() {

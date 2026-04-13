@@ -11,7 +11,6 @@ pub async fn get_req<U: IntoUrl + Clone>(client: Client, url: U) -> Result<Respo
         .header("Connection", "keep-alive")
         .send()
         .await
-        // .context(String::from("Error fetching url ") + url.as_str())
         .map_err(|e| {
             anyhow!(
                 "Error({}): {}",

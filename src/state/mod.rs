@@ -1,6 +1,6 @@
 use anyhow::{Result, anyhow};
 use ratatui::widgets::ListItem;
-use reqwest::Url;
+use reqwest::{Client, Url};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tracing::error;
 
@@ -20,6 +20,8 @@ pub mod input;
 pub mod tab_state;
 pub mod term;
 pub mod webclient_state;
+
+static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
 pub trait ListTrait {
     fn to_list_item(&self, width: u16) -> ListItem<'static>;
@@ -50,19 +52,21 @@ pub struct State {
     pub task_rx: UnboundedReceiver<TaskResult>,
 }
 
-impl Default for State {
-    fn default() -> Self {
+impl State {
+    pub fn new() -> Result<Self> {
         let (task_tx, task_rx) = tokio::sync::mpsc::unbounded_channel();
-        Self {
+        let web_client = Client::builder().user_agent(APP_USER_AGENT).build()?;
+        Ok(Self {
             task_rx,
             task_tx,
             term_state: TermState::default(),
-            web_client_state: WebClientState::default(),
-        }
+            web_client_state: WebClientState {
+                web_client,
+                ..Default::default()
+            },
+        })
     }
-}
 
-impl State {
     /// main function for updating / loading configs
     pub fn load_configs(&mut self, configs: Configs) {
         self.web_client_state.search_provider = SearchProvider {
@@ -221,7 +225,7 @@ impl State {
         if let Ok(tab) = self.get_tab().as_mut() {
             if let Some(page) = tab.content.as_mut() {
                 // uses number of lines in page to determine a scroll limit
-                if tab.scroll_idx <= page.linecount as u16 + term_lines + 4 {
+                if tab.scroll_idx <= page.linecount.unwrap_or_default() as u16 + term_lines + 4 {
                     tab.scroll_idx += 1;
                 }
             }
@@ -285,7 +289,7 @@ impl State {
 
     pub fn go_to_url(&mut self, url: Url) -> Result<()> {
         let tab_id = self.term_state.tab_state.new_tab(
-            format!("loading {}", url.clone()),
+            format!("loading {}", url),
             TaskType::Url(url.clone()),
         )?;
         self.spawn_page(TaskType::Url(url), tab_id)
@@ -295,7 +299,10 @@ impl State {
         let tx = self.task_tx.clone();
         let search_url = self.web_client_state.search_provider.url.clone();
         let provider = self.web_client_state.search_provider.name;
+        let web_client = self.web_client_state.web_client.clone();
+
         tokio::spawn(async move {
+            let client = web_client.clone();
             let mut web_state = WebClientState {
                 search_provider: SearchProvider {
                     url: search_url,
@@ -304,7 +311,7 @@ impl State {
                 ..Default::default()
             };
             let res = match task_type {
-                TaskType::Search(query) => match web_state.search(query, tab_id).await {
+                TaskType::Search(query) => match web_state.search(query, tab_id, client).await {
                     Ok(page) => TaskResult::Loaded { tab_id, page: page },
                     Err(e) => {
                         error!("{:#?}", e);
@@ -314,14 +321,16 @@ impl State {
                         }
                     }
                 },
-                TaskType::Url(url) => match FetchUrl::new(url.clone()).fetch_url(url, tab_id).await
+                TaskType::Url(url) => match FetchUrl::new(url.clone())
+                    .fetch_url(url, tab_id, client)
+                    .await
                 {
                     Ok(page) => TaskResult::Loaded { tab_id, page },
                     Err(e) => {
                         error!("{:#?}", e);
                         TaskResult::LoadError {
                             tab_id,
-                            error: e.to_string(),
+                            error: e.to_string()
                         }
                     }
                 },
