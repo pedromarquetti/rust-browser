@@ -15,13 +15,13 @@ pub trait WebClientTrait {
         query: String,
         state: &mut WebClientState,
         tab_id: i32,
-        client: Client,
+        client: &Client,
     ) -> impl Future<Output = Result<ParsedPage>> + Send;
 
     fn fetch_url(
         &self,
         url: Url,
         tab_id: i32,
-        client: Client,
+        client: &Client,
     ) -> impl Future<Output = Result<ParsedPage>> + Send;
 }

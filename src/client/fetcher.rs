@@ -4,7 +4,7 @@ use reqwest::{Client, IntoUrl, Response, StatusCode};
 /// Generic HTTP GET func
 ///
 /// Returns Response
-pub async fn get_req<U: IntoUrl + Clone>(client: Client, url: U) -> Result<Response> {
+pub async fn get_req<U: IntoUrl + Clone>(client: &Client, url: U) -> Result<Response> {
     client
         .get(url.clone())
         .header("Accept", "text/html")

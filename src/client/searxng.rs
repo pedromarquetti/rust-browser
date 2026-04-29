@@ -72,7 +72,7 @@ impl WebClientTrait for SearxngResult {
         query: String,
         state: &mut crate::state::webclient_state::WebClientState,
         tab_id: i32,
-        client: Client,
+        client: &Client,
     ) -> anyhow::Result<ParsedPage> {
         if state.search_provider.url.is_empty() {
             return Err(anyhow!("SearXNG URL not set!"));
@@ -116,7 +116,7 @@ impl WebClientTrait for SearxngResult {
         &self,
         _url: Url,
         _tab_id: i32,
-        _client: Client,
+        _client: &Client,
     ) -> anyhow::Result<ParsedPage> {
         bail!("This provider does not implement direct url!")
     }

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     client::{WebClientTrait, parser::ParsedPage, searxng::SearxngResult},
     config::webclient_config::AvailableSearchEngines,
@@ -9,7 +11,7 @@ use reqwest::Client;
 pub struct WebClientState {
     pub search_provider: SearchProvider,
     pub is_loading: bool,
-    pub web_client: Client,
+    pub web_client: Arc<Client>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -33,7 +35,7 @@ impl WebClientState {
         &mut self,
         query: String,
         tab_id: i32,
-        client: Client,
+        client: &Client,
     ) -> Result<ParsedPage> {
         if self.search_provider.url.is_empty() || query.is_empty() {
             return Err(anyhow!(format!(

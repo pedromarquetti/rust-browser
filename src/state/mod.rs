@@ -1,7 +1,9 @@
+use std::{sync::Arc, time::Duration};
+
 use anyhow::{Result, anyhow};
 use ratatui::widgets::ListItem;
 use reqwest::{Client, Url};
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{Receiver, Sender, UnboundedReceiver, UnboundedSender};
 use tracing::error;
 
 use crate::{
@@ -47,15 +49,15 @@ pub struct State {
     pub term_state: TermState,
     pub web_client_state: WebClientState,
     /// sender channel
-    pub task_tx: UnboundedSender<TaskResult>,
+    pub task_tx: Sender<TaskResult>,
     /// receiver channel
-    pub task_rx: UnboundedReceiver<TaskResult>,
+    pub task_rx: Receiver<TaskResult>,
 }
 
 impl State {
     pub fn new() -> Result<Self> {
-        let (task_tx, task_rx) = tokio::sync::mpsc::unbounded_channel();
-        let web_client = Client::builder().user_agent(APP_USER_AGENT).build()?;
+        let (task_tx, task_rx) = tokio::sync::mpsc::channel(100);
+        let web_client = Arc::new(Client::builder().timeout(Duration::from_secs(30)).user_agent(APP_USER_AGENT).build()?);
         Ok(Self {
             task_rx,
             task_tx,
@@ -299,10 +301,9 @@ impl State {
         let tx = self.task_tx.clone();
         let search_url = self.web_client_state.search_provider.url.clone();
         let provider = self.web_client_state.search_provider.name;
-        let web_client = self.web_client_state.web_client.clone();
+        let web_client = Arc::clone(&self.web_client_state.web_client);
 
         tokio::spawn(async move {
-            let client = web_client.clone();
             let mut web_state = WebClientState {
                 search_provider: SearchProvider {
                     url: search_url,
@@ -311,7 +312,7 @@ impl State {
                 ..Default::default()
             };
             let res = match task_type {
-                TaskType::Search(query) => match web_state.search(query, tab_id, client).await {
+                TaskType::Search(query) => match web_state.search(query, tab_id, &web_client).await {
                     Ok(page) => TaskResult::Loaded { tab_id, page: page },
                     Err(e) => {
                         error!("{:#?}", e);
@@ -322,7 +323,7 @@ impl State {
                     }
                 },
                 TaskType::Url(url) => match FetchUrl::new(url.clone())
-                    .fetch_url(url, tab_id, client)
+                    .fetch_url(url, tab_id, &web_client)
                     .await
                 {
                     Ok(page) => TaskResult::Loaded { tab_id, page },
@@ -335,7 +336,7 @@ impl State {
                     }
                 },
             };
-            match tx.send(res) {
+            match tx.send(res).await {
                 Ok(_) => Ok(()),
                 Err(err) => Err(anyhow!("Error spawning page: {}", err)),
             }

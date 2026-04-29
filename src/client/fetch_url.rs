@@ -24,7 +24,7 @@ impl WebClientTrait for FetchUrl {
         _query: String,
         _state: &mut crate::state::webclient_state::WebClientState,
         _tab_id: i32,
-        _client: Client,
+        _client: &Client,
     ) -> anyhow::Result<super::parser::ParsedPage> {
         bail!("FetchUrl does not implement searching")
     }
@@ -33,7 +33,7 @@ impl WebClientTrait for FetchUrl {
         &self,
         url: Url,
         tab_id: i32,
-        client: Client,
+        client: &Client,
     ) -> anyhow::Result<super::parser::ParsedPage> {
         let req = get_req(client, url.clone()).await?;
 
