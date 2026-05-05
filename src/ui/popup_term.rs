@@ -14,6 +14,7 @@ use crate::{
 };
 
 #[derive(Debug, Default)]
+// TODO: make this searchable (user should be able to search for list items / text)
 pub struct PopupTerm {
     pub idx: i32,
 }

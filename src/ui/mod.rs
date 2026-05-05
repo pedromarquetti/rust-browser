@@ -1,4 +1,4 @@
-use ::crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{prelude::*, style::Stylize, widgets::Clear};
 use reqwest::Url;
 use std::{str::FromStr, time::Duration};
@@ -122,6 +122,7 @@ impl Term {
                 }
             }
         }
+        // TODO: make this modular (configurable keypresses)
         match (e.code, state.term_state.mode.clone()) {
             (KeyCode::Esc, _) => {
                 if state.term_state.pop_up.is_some() {
@@ -175,7 +176,7 @@ impl Term {
                         _ => {}
                     }
                 }
-                // current selected item by cursor (search tab) - open in this app 
+                // current selected item by cursor (search tab) - open in this app
                 if let Ok(item) = state.term_state.tab_state.get_selected_item() {
                     if item.link.is_some() {
                         let url = Url::from_str(&item.link.unwrap_or_default().url)?;
@@ -199,7 +200,7 @@ impl Term {
                                     "{} opened in default app!",
                                     url
                                 ))));
-                                // prevent "search result" block below from being ran 
+                                // prevent "search result" block below from being ran
                                 return Ok(());
                             }
                         }

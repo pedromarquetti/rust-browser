@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use anyhow::{Result, anyhow};
 use ratatui::widgets::ListItem;
 use reqwest::{Client, Url};
-use tokio::sync::mpsc::{Receiver, Sender, UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::error;
 
 use crate::{
@@ -56,8 +56,13 @@ pub struct State {
 
 impl State {
     pub fn new() -> Result<Self> {
-        let (task_tx, task_rx) = tokio::sync::mpsc::channel(100);
-        let web_client = Arc::new(Client::builder().timeout(Duration::from_secs(30)).user_agent(APP_USER_AGENT).build()?);
+        let (task_tx, task_rx) = tokio::sync::mpsc::channel::<TaskResult>(100);
+        let web_client = Arc::new(
+            Client::builder()
+                .timeout(Duration::from_secs(30))
+                .user_agent(APP_USER_AGENT)
+                .build()?,
+        );
         Ok(Self {
             task_rx,
             task_tx,
@@ -290,10 +295,10 @@ impl State {
     }
 
     pub fn go_to_url(&mut self, url: Url) -> Result<()> {
-        let tab_id = self.term_state.tab_state.new_tab(
-            format!("loading {}", url),
-            TaskType::Url(url.clone()),
-        )?;
+        let tab_id = self
+            .term_state
+            .tab_state
+            .new_tab(format!("loading {}", url), TaskType::Url(url.clone()))?;
         self.spawn_page(TaskType::Url(url), tab_id)
     }
 
@@ -309,19 +314,22 @@ impl State {
                     url: search_url,
                     name: provider,
                 },
+                web_client: Arc::clone(&web_client),
                 ..Default::default()
             };
             let res = match task_type {
-                TaskType::Search(query) => match web_state.search(query, tab_id, &web_client).await {
-                    Ok(page) => TaskResult::Loaded { tab_id, page: page },
-                    Err(e) => {
-                        error!("{:#?}", e);
-                        TaskResult::LoadError {
-                            tab_id,
-                            error: e.to_string(),
+                TaskType::Search(query) => {
+                    match web_state.search(query, tab_id, web_client.as_ref()).await {
+                        Ok(page) => TaskResult::Loaded { tab_id, page: page },
+                        Err(e) => {
+                            error!("{:#?}", e);
+                            TaskResult::LoadError {
+                                tab_id,
+                                error: e.to_string(),
+                            }
                         }
                     }
-                },
+                }
                 TaskType::Url(url) => match FetchUrl::new(url.clone())
                     .fetch_url(url, tab_id, &web_client)
                     .await
@@ -331,7 +339,7 @@ impl State {
                         error!("{:#?}", e);
                         TaskResult::LoadError {
                             tab_id,
-                            error: e.to_string()
+                            error: e.to_string(),
                         }
                     }
                 },
