@@ -120,6 +120,7 @@ impl ParsedPage {
                     let mut start = 0;
                     while start < word.len() {
                         let end = (start + max).min(word.len());
+                        // BUG: special chars might break this! バムの収録曲全38曲を公開
                         let chunk = &word[start..end];
 
                         if !wrapped.is_empty() {
