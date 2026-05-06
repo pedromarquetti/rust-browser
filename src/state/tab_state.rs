@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::{Result, anyhow};
 
 use crate::{
@@ -12,7 +14,7 @@ use crate::{
 pub struct Tab {
     pub id: i32,
     pub title: String,
-    pub content: Option<ParsedPage>,
+    pub content: Option<Arc<ParsedPage>>,
     pub is_loading: bool,
     pub scroll_idx: u16,
     /// defines if tab contains Search or Direct URL page
@@ -64,7 +66,7 @@ impl TabState {
     pub fn get_selected_item(&mut self) -> Result<Part> {
         if let Some(tab) = &self.curr_tab() {
             if let Some(page) = &tab.content {
-                let idx = page.state.selected().unwrap_or(0);
+                let idx = page.state.borrow_mut().selected().unwrap_or(0);
                 match &page.parsed_content {
                     ParsedContent::PartList(list) => {
                         // filter list
@@ -132,7 +134,7 @@ impl TabState {
         if let Some(tab) = self.tab_list.iter_mut().find(|i| i.id == tab_id) {
             tab.title = page.title.clone();
             tab.is_loading = false;
-            tab.content = Some(page);
+            tab.content = Some(Arc::new(page));
 
             Ok(())
         } else {

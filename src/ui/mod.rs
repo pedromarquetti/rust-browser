@@ -287,10 +287,10 @@ impl Term {
                             if let Some(tab) = state.term_state.tab_state.curr_tab_mut() {
                                 if let Some(page) = tab.content.as_mut() {
                                     // resetting idx
-                                    page.curr_search_idx = 0;
+                                    page.curr_search_idx.set(0);
                                     page.get_search_pos(&val);
-                                    if !page.pos.is_empty() {
-                                        tab.scroll_idx = page.pos[0].line as u16;
+                                    if !page.pos.borrow().is_empty() {
+                                        tab.scroll_idx = page.pos.borrow()[0].line as u16;
                                     } else {
                                         error!("pattern {val} not found in search");
                                         state.create_popup(TermType::err(PopupData::Text(

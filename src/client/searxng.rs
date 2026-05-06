@@ -60,7 +60,7 @@ impl ParserTrait for SearxngResult {
             url: url.to_string(),
             page_type: PageType::Search,
             parsed_content: crate::client::parser::ParsedContent::PartList(content),
-            state,
+            state: state.into(),
             ..Default::default()
         })
     }

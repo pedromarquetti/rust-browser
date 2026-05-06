@@ -62,29 +62,35 @@ impl StatefulWidget for &mut Page {
                         let [list_area] = Layout::vertical([Constraint::Fill(1)]).areas(inner);
                         block.title(title).render(area, buf);
                         Clear.render(inner, buf);
-                        StatefulWidget::render(list, list_area, buf, &mut content.state);
+                        StatefulWidget::render(
+                            list,
+                            list_area,
+                            buf,
+                            &mut content.state.borrow_mut(),
+                        );
                     }
                     _ => {}
                 },
                 PageType::Raw => {
                     Clear.render(inner, buf);
                     // Conditionally wrapping (only if terminal size changes)
-                    let needs_wrap = content.prev_width != Some(available_width as usize);
+                    let needs_wrap = content.prev_width.get() != Some(available_width as usize);
 
                     if needs_wrap {
                         content.to_wrapped_string(state.term_state.cols);
-                        content.prev_width = Some(available_width as usize);
+                        content.prev_width.set(Some(available_width as usize));
                     }
 
                     let wordcount = format!(
                         "words: {} lines: {}",
-                        content.wordcount.unwrap_or_default(),
-                        content.linecount.unwrap_or_default()
+                        content.wordcount.get().unwrap_or_default(),
+                        content.linecount.get().unwrap_or_default()
                     );
-                    let pos: &StrPos = {
-                        match content.pos.get(content.curr_search_idx as usize) {
-                            Some(i) => i,
-                            None => &StrPos {
+                    let pos: StrPos = {
+                        let p = content.pos.borrow();
+                        match p.get(content.curr_search_idx.get() as usize) {
+                            Some(i) => i.clone(),
+                            None => StrPos {
                                 ..Default::default()
                             },
                         }

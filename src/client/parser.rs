@@ -1,4 +1,7 @@
-use std::fmt::Display;
+use std::{
+    cell::{Cell, RefCell},
+    fmt::Display,
+};
 
 use anyhow::Result;
 use ratatui::{
@@ -26,13 +29,13 @@ pub struct ParsedPage {
     pub url: String,
     pub page_links: Vec<Link>,
     pub parsed_content: ParsedContent,
-    pub linecount: Option<usize>,
-    pub wordcount: Option<usize>,
-    pub prev_width:Option<usize>,
-    pub pos: Vec<StrPos>,
-    pub curr_search_idx: u16,
+    pub linecount: Cell<Option<usize>>,
+    pub wordcount: Cell<Option<usize>>,
+    pub prev_width: Cell<Option<usize>>,
+    pub pos: RefCell<Vec<StrPos>>,
+    pub curr_search_idx: Cell<u16>,
     pub raw_text: String,
-    pub state: ListState,
+    pub state: RefCell<ListState>,
     pub page_type: PageType,
 }
 
@@ -51,7 +54,7 @@ impl Display for StrPos {
 
 impl ParsedPage {
     /// This func fills ParsedPage::pos with a vec of results
-    pub fn get_search_pos<S>(&mut self, pattern: &S)
+    pub fn get_search_pos<S>(&self, pattern: &S)
     where
         S: Display + ToString,
     {
@@ -71,11 +74,12 @@ impl ParsedPage {
             }
             curr_offset += line.len() + "\n".len()
         }
-        self.pos = res;
+        let mut pos = self.pos.borrow_mut();
+        *pos = res;
     }
 
     /// Function for wrapping the raw string and setting line/word count
-    pub fn to_wrapped_string(&mut self, width: u16) {
+    pub fn to_wrapped_string(&self, width: u16) {
         if self.raw_text.trim().is_empty() {
             return;
         }
@@ -152,8 +156,8 @@ impl ParsedPage {
             }
         }
 
-        self.wordcount = Some(wordcount);
-        self.linecount = Some(wrapped.lines().count())
+        self.wordcount.set(Some(wordcount));
+        self.linecount.set(Some(wrapped.lines().count()));
     }
 }
 
@@ -192,7 +196,7 @@ impl FromIterator<(PartState, String, Link)> for ParsedPage {
         Self {
             // parsed_content: items,
             parsed_content: ParsedContent::PartList(items),
-            state,
+            state: RefCell::new(state),
             ..Default::default()
         }
     }

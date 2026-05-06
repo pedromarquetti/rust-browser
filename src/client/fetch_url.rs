@@ -88,7 +88,7 @@ impl ParserTrait for FetchUrl {
                     title: url.to_string(),
                     url: url.to_string(),
                     parsed_content: ParsedContent::Text(Text::from(self.data.clone())),
-                    state,
+                    state: state.into(),
                     ..Default::default()
                 });
             }

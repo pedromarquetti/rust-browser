@@ -143,12 +143,13 @@ impl State {
     pub fn prev_search(&mut self) -> Result<()> {
         if let Some(tab) = self.term_state.tab_state.curr_tab_mut() {
             if let Some(page) = tab.content.as_mut() {
-                if page.curr_search_idx != 0 {
-                    let curr_idx = page.curr_search_idx;
-                    match page.pos.get(curr_idx as usize - 1) {
+                if page.curr_search_idx.get() != 0 {
+                    let curr_idx = page.curr_search_idx.get();
+                    let res = page.pos.borrow().get(curr_idx as usize - 1).cloned();
+                    match res {
                         Some(i) => {
                             tab.scroll_idx = i.line as u16;
-                            page.curr_search_idx -= 1;
+                            page.curr_search_idx.set(curr_idx - 1);
                         }
                         None => {
                             self.create_popup(TermType::err(PopupData::Text(format!(
@@ -168,12 +169,13 @@ impl State {
     pub fn next_search(&mut self) -> Result<()> {
         if let Some(tab) = self.term_state.tab_state.curr_tab_mut() {
             if let Some(page) = tab.content.as_mut() {
-                if !page.pos.is_empty() {
-                    let curr_idx = page.curr_search_idx;
-                    match page.pos.get(curr_idx as usize + 1) {
+                if !page.pos.borrow().is_empty() {
+                    let curr_idx = page.curr_search_idx.get();
+                    let res = page.pos.borrow().get(curr_idx as usize + 1).cloned();
+                    match res {
                         Some(i) => {
                             tab.scroll_idx = i.line as u16;
-                            page.curr_search_idx += 1;
+                            page.curr_search_idx.set(curr_idx + 1);
                         }
                         None => {
                             self.create_popup(TermType::err(PopupData::Text(format!(
@@ -200,7 +202,7 @@ impl State {
             }
 
             if let Some(curr_tab) = &mut tab.content {
-                curr_tab.state.select_previous();
+                curr_tab.state.borrow_mut().select_previous();
             } else {
                 return Err(anyhow!("no content for prev item"));
             }
@@ -218,7 +220,7 @@ impl State {
             }
 
             if let Some(curr_tab) = &mut tab.content {
-                curr_tab.state.select_next();
+                curr_tab.state.borrow_mut().select_next();
             } else {
                 return Err(anyhow!("no content for next item"));
             }
@@ -232,7 +234,9 @@ impl State {
         if let Ok(tab) = self.get_tab().as_mut() {
             if let Some(page) = tab.content.as_mut() {
                 // uses number of lines in page to determine a scroll limit
-                if tab.scroll_idx <= page.linecount.unwrap_or_default() as u16 + term_lines + 4 {
+                if tab.scroll_idx
+                    <= page.linecount.get().unwrap_or_default() as u16 + term_lines + 4
+                {
                     tab.scroll_idx += 1;
                 }
             }
