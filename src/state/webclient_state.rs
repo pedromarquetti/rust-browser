@@ -11,7 +11,8 @@ use reqwest::Client;
 pub struct WebClientState {
     pub search_provider: SearchProvider,
     pub is_loading: bool,
-    pub web_client: Arc<Client>,
+    // lazy load web client
+    pub web_client: Option<Arc<Client>>,
 }
 
 #[derive(Debug, Clone, Default)]

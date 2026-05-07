@@ -1,7 +1,7 @@
 use crate::client::parser::{PageType, ParsedContent, StrPos};
-use crate::state::{ListTrait, State};
+use crate::state::State;
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Widget, Wrap};
+use ratatui::widgets::{Block, Borders, Clear, List, Paragraph, Widget};
 
 #[derive(Debug, Default)]
 pub struct Page {
@@ -40,7 +40,6 @@ impl StatefulWidget for &mut Page {
 
             let block = Block::default()
                 .borders(Borders::all())
-                .title(title)
                 .title_bottom(state.term_state.mode.to_string())
                 .bg(Color::Reset);
 
@@ -50,17 +49,16 @@ impl StatefulWidget for &mut Page {
             Clear.render(inner, buf);
             match content.page_type {
                 PageType::Search => match &content.parsed_content {
-                    ParsedContent::PartList(list) => {
-                        let items: Vec<ListItem> = list
-                            .iter()
-                            .map(|part| part.to_list_item(available_width))
-                            .collect();
-                        let list = List::new(items.clone()).highlight_symbol(">");
-                        let title = Line::from(format!("{} items", list.len()))
+                    ParsedContent::PartList(_) => {
+                        // creating cache of ListItems (search page)
+                        content.search_items_cache(available_width);
+                        let items = content.search_items();
+                        let list_len = Line::from(format!("{} items", content.search_items_len()))
                             .style(Style::default().fg(Color::DarkGray).italic());
+                        let list = List::new(items).highlight_symbol(">");
 
                         let [list_area] = Layout::vertical([Constraint::Fill(1)]).areas(inner);
-                        block.title(title).render(area, buf);
+                        block.title(title).title(list_len).render(area, buf);
                         Clear.render(inner, buf);
                         StatefulWidget::render(
                             list,
@@ -73,19 +71,17 @@ impl StatefulWidget for &mut Page {
                 },
                 PageType::Raw => {
                     Clear.render(inner, buf);
-                    // Conditionally wrapping (only if terminal size changes)
-                    let needs_wrap = content.prev_width.get() != Some(available_width as usize);
 
-                    if needs_wrap {
-                        content.to_wrapped_string(state.term_state.cols);
-                        content.prev_width.set(Some(available_width as usize));
-                    }
+                    // wrap parsed content 
+                    // This is needed for string search functionallity
+                    content.to_wrapped_string(available_width);
 
                     let wordcount = format!(
                         "words: {} lines: {}",
                         content.wordcount.get().unwrap_or_default(),
                         content.linecount.get().unwrap_or_default()
                     );
+
                     let pos: StrPos = {
                         let p = content.pos.borrow();
                         match p.get(content.curr_search_idx.get() as usize) {
@@ -98,19 +94,37 @@ impl StatefulWidget for &mut Page {
 
                     let details =
                         Line::from(wordcount).style(Style::default().fg(Color::DarkGray).italic());
+
+                    // long page titles should be cut
+                    let mut cut_title = title.to_string();
+                    let limit = (available_width as usize) / 2;
+                    let end_index = cut_title
+                        .char_indices()
+                        .nth(limit)
+                        .map(|(idx, _)| idx)
+                        .unwrap_or(cut_title.len());
+                    cut_title.truncate(end_index);
+
+                    block
+                        .title(cut_title)
+                        .title(details)
+                        .title_bottom(pos.to_string())
+                        .render(area, buf);
+
+                    Clear.render(inner, buf);
                     match &content.parsed_content {
                         ParsedContent::Text(text) => {
-                            block
-                                .title(details)
-                                .title_bottom(pos.to_string())
-                                .render(area, buf);
-                            Clear.render(inner, buf);
                             Paragraph::new(text.clone())
-                                .scroll((scroll_idx as u16, 0))
-                                .wrap(Wrap { trim: false })
+                                .scroll((scroll_idx, 0))
+                                .wrap(ratatui::widgets::Wrap { trim: false })
                                 .render(inner, buf);
                         }
-                        _ => {}
+                        _ => {
+                            Paragraph::new(content.raw_text.as_str())
+                                .scroll((scroll_idx, 0))
+                                .wrap(ratatui::widgets::Wrap { trim: false })
+                                .render(inner, buf);
+                        }
                     }
                 }
             }

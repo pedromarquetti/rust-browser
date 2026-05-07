@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use anyhow::{anyhow, bail};
 use ratatui::{style::Stylize, text::Text, widgets::ListState};
-use reqwest::{Client, Url};
+use reqwest::{Client, Response, Url};
 use scraper::{ElementRef, Html, Node, Selector};
 
 use crate::client::{
@@ -10,6 +10,9 @@ use crate::client::{
     fetcher::get_req,
     parser::{Link, ParsedContent, ParsedPage, ParserTrait},
 };
+
+const MAX_PAGE_BYTES: usize = 2 * 1024 * 1024;
+const MAX_PAGE_LINKS: usize = 1500;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct FetchUrl {
@@ -43,7 +46,8 @@ impl WebClientTrait for FetchUrl {
 
         let mut f = FetchUrl::new(url.clone());
 
-        let text = req.text().await?;
+        // tries to read HTML with limit
+        let text = read_capped_body(req).await?;
         f.data = text;
         f.to_parsed_page(url, tab_id)
     }
@@ -59,22 +63,15 @@ impl ParserTrait for FetchUrl {
         let main_sel =
             Selector::parse("main, article, body").map_err(|e| anyhow!(e.to_string()))?;
 
-        let visible: Vec<ElementRef> = doc
-            .select(&main_sel)
-            .filter(|node| {
-                let style = node.value().attr("style").unwrap_or("");
-                !style.contains("display: none")
-                    || !style.contains("display:none")
-                    || !style.contains("visibility: hidden")
-                    || !style.contains("visibility:hidden")
-            })
-            .collect();
-
-        // let start_nodes: Vec<ElementRef> = doc.select(&main_sel).collect();
-
-        // let root = if let Some(el) = start_nodes.first() {
-        let root = if let Some(el) = visible.first() {
-            *el
+        let root = if let Some(el) = doc.select(&main_sel).find(|node| {
+            let style = node.value().attr("style").unwrap_or("");
+            // hiding hidden (??) elements
+            !style.contains("display: none")
+                && !style.contains("display:none")
+                && !style.contains("visibility: hidden")
+                && !style.contains("visibility:hidden")
+        }) {
+            el
         } else {
             // Fallback to document root as ElementRef by selecting html tag if present
             if let Some(html_el) = doc.select(&Selector::parse("html").unwrap()).next() {
@@ -87,6 +84,7 @@ impl ParserTrait for FetchUrl {
                 return Ok(ParsedPage {
                     title: url.to_string(),
                     url: url.to_string(),
+                    raw_text: self.data.clone(),
                     parsed_content: ParsedContent::Text(Text::from(self.data.clone())),
                     state: state.into(),
                     ..Default::default()
@@ -123,6 +121,20 @@ impl FetchUrl {
             data: String::new(),
         }
     }
+}
+
+/// limits page size
+async fn read_capped_body(mut req: Response) -> anyhow::Result<String> {
+    let mut buf = Vec::with_capacity(64 * 1024);
+
+    while let Some(chunk) = req.chunk().await? {
+        if buf.len() + chunk.len() > MAX_PAGE_BYTES {
+            bail!("Page payload exceeded {} bytes", MAX_PAGE_BYTES);
+        }
+        buf.extend_from_slice(&chunk);
+    }
+
+    Ok(String::from_utf8_lossy(&buf).into_owned())
 }
 
 /// main recursive func. to handle element/page rendering
@@ -384,6 +396,10 @@ where
 }
 
 fn push_link_segment(segments: &mut Vec<Link>, label: String, url: String) {
+    if segments.len() >= MAX_PAGE_LINKS {
+        return;
+    }
+
     if !label.trim().is_empty() {
         segments.push(Link {
             title: label.clone(),

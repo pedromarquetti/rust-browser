@@ -10,6 +10,8 @@ use crate::{
     state::TaskType,
 };
 
+const MAX_LOADED_TABS: usize = 5;
+
 #[derive(Debug, Clone)]
 pub struct Tab {
     pub id: i32,
@@ -135,11 +137,43 @@ impl TabState {
             tab.title = page.title.clone();
             tab.is_loading = false;
             tab.content = Some(Arc::new(page));
+            
+            // tab cleanup
+            self.evict_loaded_tabs(tab_id);
 
             Ok(())
         } else {
             // Err(anyhow!("Tab with id {} not foumd", tab_id))
             Ok(())
+        }
+    }
+
+    fn evict_loaded_tabs(&mut self, keep_tab_id: i32) {
+        let mut loaded_count = self
+            .tab_list
+            .iter()
+            .filter(|tab| tab.content.is_some())
+            .count();
+        if loaded_count <= MAX_LOADED_TABS {
+            return;
+        }
+
+        let current_id = self.curr_tab().map(|tab| tab.id);
+        for tab in &mut self.tab_list {
+            if loaded_count <= MAX_LOADED_TABS {
+                break;
+            }
+            if tab.content.is_none() {
+                continue;
+            }
+            if tab.id == keep_tab_id || Some(tab.id) == current_id {
+                continue;
+            }
+
+            tab.content = None;
+            tab.scroll_idx = 0;
+            tab.is_loading = false;
+            loaded_count -= 1;
         }
     }
 }

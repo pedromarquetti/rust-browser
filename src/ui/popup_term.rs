@@ -112,7 +112,7 @@ impl PopupTerm {
 
                 let items: Vec<ListItem> = links.iter().map(|i| i.to_list_item(width)).collect();
 
-                let list = List::new(items.clone())
+                let list = List::new(items)
                     .highlight_style(
                         Style::new()
                             .italic()

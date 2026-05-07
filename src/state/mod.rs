@@ -56,21 +56,12 @@ pub struct State {
 
 impl State {
     pub fn new() -> Result<Self> {
-        let (task_tx, task_rx) = tokio::sync::mpsc::channel::<TaskResult>(100);
-        let web_client = Arc::new(
-            Client::builder()
-                .timeout(Duration::from_secs(30))
-                .user_agent(APP_USER_AGENT)
-                .build()?,
-        );
+        let (task_tx, task_rx) = tokio::sync::mpsc::channel::<TaskResult>(16);
         Ok(Self {
             task_rx,
             task_tx,
             term_state: TermState::default(),
-            web_client_state: WebClientState {
-                web_client,
-                ..Default::default()
-            },
+            web_client_state: WebClientState::default(),
         })
     }
 
@@ -141,6 +132,7 @@ impl State {
     }
 
     pub fn prev_search(&mut self) -> Result<()> {
+        let width = self.term_state.cols.saturating_sub(2);
         if let Some(tab) = self.term_state.tab_state.curr_tab_mut() {
             if let Some(page) = tab.content.as_mut() {
                 if page.curr_search_idx.get() != 0 {
@@ -148,7 +140,8 @@ impl State {
                     let res = page.pos.borrow().get(curr_idx as usize - 1).cloned();
                     match res {
                         Some(i) => {
-                            tab.scroll_idx = i.line as u16;
+                            // go to prev tab ParsedPage line
+                            tab.scroll_idx = page.visual_line_for_byte(width, i.str_byte) as u16;
                             page.curr_search_idx.set(curr_idx - 1);
                         }
                         None => {
@@ -167,6 +160,7 @@ impl State {
     }
 
     pub fn next_search(&mut self) -> Result<()> {
+        let width = self.term_state.cols.saturating_sub(2);
         if let Some(tab) = self.term_state.tab_state.curr_tab_mut() {
             if let Some(page) = tab.content.as_mut() {
                 if !page.pos.borrow().is_empty() {
@@ -174,7 +168,8 @@ impl State {
                     let res = page.pos.borrow().get(curr_idx as usize + 1).cloned();
                     match res {
                         Some(i) => {
-                            tab.scroll_idx = i.line as u16;
+                            // go to next search
+                            tab.scroll_idx = page.visual_line_for_byte(width, i.str_byte) as u16;
                             page.curr_search_idx.set(curr_idx + 1);
                         }
                         None => {
@@ -231,8 +226,10 @@ impl State {
 
     fn scroll_down(&mut self) -> Result<()> {
         let term_lines = self.term_state.lines;
+        let width = self.term_state.cols.saturating_sub(2);
         if let Ok(tab) = self.get_tab().as_mut() {
             if let Some(page) = tab.content.as_mut() {
+                page.to_wrapped_string(width);
                 // uses number of lines in page to determine a scroll limit
                 if tab.scroll_idx
                     <= page.linecount.get().unwrap_or_default() as u16 + term_lines + 4
@@ -306,11 +303,29 @@ impl State {
         self.spawn_page(TaskType::Url(url), tab_id)
     }
 
+    fn ensure_web_client(&mut self) -> Result<Arc<Client>> {
+        if self.web_client_state.web_client.is_none() {
+            // since we use lazy loaded web client, make sure it exists
+            let client = Arc::new(
+                Client::builder()
+                    .timeout(Duration::from_secs(30))
+                    .user_agent(APP_USER_AGENT)
+                    .build()?,
+            );
+            self.web_client_state.web_client = Some(client);
+        }
+
+        match self.web_client_state.web_client.as_ref() {
+            Some(client) => Ok(Arc::clone(client)),
+            None => Err(anyhow!("Web client is not initialized")),
+        }
+    }
+
     pub fn spawn_page(&mut self, task_type: TaskType, tab_id: i32) -> Result<()> {
         let tx = self.task_tx.clone();
         let search_url = self.web_client_state.search_provider.url.clone();
         let provider = self.web_client_state.search_provider.name;
-        let web_client = Arc::clone(&self.web_client_state.web_client);
+        let web_client = self.ensure_web_client()?;
 
         tokio::spawn(async move {
             let mut web_state = WebClientState {
@@ -318,7 +333,7 @@ impl State {
                     url: search_url,
                     name: provider,
                 },
-                web_client: Arc::clone(&web_client),
+                web_client: Some(Arc::clone(&web_client)),
                 ..Default::default()
             };
             let res = match task_type {

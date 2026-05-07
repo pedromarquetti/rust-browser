@@ -28,41 +28,45 @@ impl SearxngResult {
             ..Default::default()
         }
     }
-}
 
-impl ParserTrait for SearxngResult {
-    fn to_parsed_page(&self, url: Url, tab_id: i32) -> anyhow::Result<ParsedPage> {
-        let mut content: Vec<Part> = vec![];
+    pub fn into_parsed_page(self, url: Url, tab_id: i32) -> anyhow::Result<ParsedPage> {
+        let mut content: Vec<Part> =
+            Vec::with_capacity(self.infoboxes.len() * 2 + self.results.len());
 
-        self.infoboxes.iter().for_each(|i| {
-            content.push(Part::text(i.infobox.to_string()));
-            content.push(Part::text(i.content.to_string()));
-        });
+        for i in self.infoboxes {
+            content.push(Part::text(i.infobox));
+            content.push(Part::text(i.content));
+        }
 
-        self.results.iter().for_each(|i| {
+        for i in self.results {
             let res = Link {
-                title: i.title.clone(),
-                url: i.url.clone(),
-                text: i.content.clone(),
+                title: i.title,
+                url: i.url,
+                text: i.content,
             };
-            content.push(Part::link(res))
-        });
+            content.push(Part::link(res));
+        }
 
         let mut state = ListState::default();
-
         if !content.is_empty() {
             state.select(Some(0));
         }
 
         Ok(ParsedPage {
             tab_id,
-            title: self.query.clone() + " - SearXNG",
+            title: format!("{} - SearXNG", self.query),
             url: url.to_string(),
             page_type: PageType::Search,
             parsed_content: crate::client::parser::ParsedContent::PartList(content),
             state: state.into(),
             ..Default::default()
         })
+    }
+}
+
+impl ParserTrait for SearxngResult {
+    fn to_parsed_page(&self, url: Url, tab_id: i32) -> anyhow::Result<ParsedPage> {
+        self.clone().into_parsed_page(url, tab_id)
     }
 }
 
@@ -109,7 +113,7 @@ impl WebClientTrait for SearxngResult {
             .await
             .map_err(|e| return anyhow!("{:#?} {:#?}", e.to_string(), e.source()))?;
 
-        req.to_parsed_page(url, tab_id)
+        req.into_parsed_page(url, tab_id)
     }
 
     async fn fetch_url(

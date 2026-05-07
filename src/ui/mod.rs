@@ -143,7 +143,9 @@ impl Term {
                 state.new_input(InputType::WebSearch);
             }
             (KeyCode::Char('/'), Mode::Normal) => state.new_input(InputType::StringSearch),
-            (KeyCode::Char('n'), Mode::Normal) => state.term_state.tab_state.next_tab()?,
+            (KeyCode::Char('n'), Mode::Normal) => {
+                state.term_state.tab_state.next_tab()?;
+            }
             (KeyCode::Char('l'), Mode::Normal) => {
                 if let Some(tab) = state.term_state.tab_state.curr_tab() {
                     if let Some(content) = &tab.content {
@@ -158,7 +160,9 @@ impl Term {
             }
             (KeyCode::Down, Mode::Normal) => {}
             (KeyCode::Up, Mode::Normal) => {}
-            (KeyCode::Char('p'), Mode::Normal) => state.term_state.tab_state.prev_tab()?,
+            (KeyCode::Char('p'), Mode::Normal) => {
+                state.term_state.tab_state.prev_tab()?;
+            }
             (KeyCode::Char('d'), Mode::Normal) => state.term_state.tab_state.del_tab()?,
             (KeyCode::Char('o'), Mode::Normal) => {
                 if let Some(popup) = state.term_state.pop_up.as_ref() {
@@ -284,13 +288,18 @@ impl Term {
                         }
                         InputType::StringSearch => {
                             info!("Entering search mode");
+                            let width = state.term_state.cols.saturating_sub(2);
                             if let Some(tab) = state.term_state.tab_state.curr_tab_mut() {
                                 if let Some(page) = tab.content.as_mut() {
                                     // resetting idx
                                     page.curr_search_idx.set(0);
                                     page.get_search_pos(&val);
-                                    if !page.pos.borrow().is_empty() {
-                                        tab.scroll_idx = page.pos.borrow()[0].line as u16;
+                                    let first_match = page.pos.borrow().first().cloned();
+                                    if let Some(first_match) = first_match {
+                                        // go to search 
+                                        tab.scroll_idx = page
+                                            .visual_line_for_byte(width, first_match.str_byte)
+                                            as u16;
                                     } else {
                                         error!("pattern {val} not found in search");
                                         state.create_popup(TermType::err(PopupData::Text(
