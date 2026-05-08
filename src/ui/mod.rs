@@ -145,6 +145,7 @@ impl Term {
             (KeyCode::Char('/'), Mode::Normal) => state.new_input(InputType::StringSearch),
             (KeyCode::Char('n'), Mode::Normal) => {
                 state.term_state.tab_state.next_tab()?;
+                state.ensure_current_tab_loaded()?;
             }
             (KeyCode::Char('l'), Mode::Normal) => {
                 if let Some(tab) = state.term_state.tab_state.curr_tab() {
@@ -162,6 +163,7 @@ impl Term {
             (KeyCode::Up, Mode::Normal) => {}
             (KeyCode::Char('p'), Mode::Normal) => {
                 state.term_state.tab_state.prev_tab()?;
+                state.ensure_current_tab_loaded()?;
             }
             (KeyCode::Char('d'), Mode::Normal) => state.term_state.tab_state.del_tab()?,
             (KeyCode::Char('o'), Mode::Normal) => {
@@ -296,7 +298,7 @@ impl Term {
                                     page.get_search_pos(&val);
                                     let first_match = page.pos.borrow().first().cloned();
                                     if let Some(first_match) = first_match {
-                                        // go to search 
+                                        // go to search
                                         tab.scroll_idx = page
                                             .visual_line_for_byte(width, first_match.str_byte)
                                             as u16;

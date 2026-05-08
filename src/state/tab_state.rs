@@ -166,6 +166,7 @@ impl TabState {
             .iter()
             .filter(|tab| tab.content.is_some())
             .count();
+
         if loaded_count <= MAX_LOADED_TABS {
             return;
         }

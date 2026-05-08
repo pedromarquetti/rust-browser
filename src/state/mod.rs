@@ -140,7 +140,6 @@ impl State {
                     let res = page.pos.borrow().get(curr_idx as usize - 1).cloned();
                     match res {
                         Some(i) => {
-                            // go to prev tab ParsedPage line
                             tab.scroll_idx = page.visual_line_for_byte(width, i.str_byte) as u16;
                             page.curr_search_idx.set(curr_idx - 1);
                         }
@@ -168,7 +167,6 @@ impl State {
                     let res = page.pos.borrow().get(curr_idx as usize + 1).cloned();
                     match res {
                         Some(i) => {
-                            // go to next search
                             tab.scroll_idx = page.visual_line_for_byte(width, i.str_byte) as u16;
                             page.curr_search_idx.set(curr_idx + 1);
                         }
@@ -305,7 +303,6 @@ impl State {
 
     fn ensure_web_client(&mut self) -> Result<Arc<Client>> {
         if self.web_client_state.web_client.is_none() {
-            // since we use lazy loaded web client, make sure it exists
             let client = Arc::new(
                 Client::builder()
                     .timeout(Duration::from_secs(30))
@@ -319,6 +316,26 @@ impl State {
             Some(client) => Ok(Arc::clone(client)),
             None => Err(anyhow!("Web client is not initialized")),
         }
+    }
+
+    pub fn ensure_current_tab_loaded(&mut self) -> Result<()> {
+        let to_load = self.term_state.tab_state.curr_tab().and_then(|tab| {
+            if tab.content.is_none() && !tab.is_loading {
+                Some((tab.id, tab.content_type.clone()))
+            } else {
+                None
+            }
+        });
+
+        if let Some((tab_id, task_type)) = to_load {
+            if let Some(tab) = self.term_state.tab_state.curr_tab_mut() {
+                tab.is_loading = true;
+                tab.scroll_idx = 0;
+            }
+            self.spawn_page(task_type, tab_id)?;
+        }
+
+        Ok(())
     }
 
     pub fn spawn_page(&mut self, task_type: TaskType, tab_id: i32) -> Result<()> {
