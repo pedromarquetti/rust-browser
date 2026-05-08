@@ -10,7 +10,8 @@ use crate::{
     state::TaskType,
 };
 
-const MAX_LOADED_TABS: usize = 5;
+// TODO: make all these consts configurable
+const MAX_LOADED_TABS: usize = 10;
 
 #[derive(Debug, Clone)]
 pub struct Tab {
@@ -52,16 +53,27 @@ impl Default for Tab {
 pub struct TabState {
     pub tab_list: Vec<Tab>,
     /// current tab index
-    pub idx: i32,
+    pub curr_idx: Option<usize>,
+    pub next_idx: i32,
 }
 
 impl TabState {
     pub fn curr_tab_mut(&mut self) -> Option<&mut Tab> {
-        self.tab_list.get_mut(self.idx as usize)
+        if let Some(idx) = self.curr_idx {
+            if let Some(tab) = self.tab_list.get_mut(idx) {
+                return Some(tab);
+            }
+        };
+        None
     }
 
     pub fn curr_tab(&self) -> Option<&Tab> {
-        self.tab_list.get(self.idx as usize)
+        if let Some(idx) = self.curr_idx {
+            if let Some(tab) = self.tab_list.get(idx) {
+                return Some(tab);
+            }
+        };
+        None
     }
 
     /// get currently selected item under ListState
@@ -88,45 +100,45 @@ impl TabState {
     }
 
     pub fn del_tab(&mut self) -> Result<()> {
-        if self.tab_list.is_empty() {
+        let Some(item) = self.curr_idx else {
             return Ok(());
-        }
+        };
 
-        self.tab_list.remove(self.idx as usize);
+        self.tab_list.remove(item);
 
-        if self.tab_list.is_empty() {
-            self.idx = 0;
-        }
-
-        self.prev_tab()?;
+        self.curr_idx = if self.tab_list.is_empty() {
+            None
+        } else if item >= self.tab_list.len() {
+            Some(self.tab_list.len() - 1)
+        } else {
+            Some(item)
+        };
 
         Ok(())
     }
 
     pub fn new_tab<S: Into<String>>(&mut self, title: S, content_type: TaskType) -> Result<i32> {
-        let tab = Tab::new(self.tab_list.len() as i32, title.into(), content_type);
-        let id = tab.id;
-        self.tab_list.push(tab);
-        self.idx = id;
+        let id = self.next_idx;
+        self.next_idx += 1;
+
+        self.tab_list.push(Tab::new(id, title.into(), content_type));
+        self.curr_idx = Some(self.tab_list.len() - 1);
         Ok(id)
     }
 
     pub fn next_tab(&mut self) -> Result<()> {
-        if self.tab_list.is_empty() {
-            return Ok(());
+        if let Some(item) = self.curr_idx {
+            self.curr_idx = Some((item + 1) % self.tab_list.len())
         }
-
-        self.idx = (self.idx + 1).min(self.tab_list.len() as i32 - 1);
 
         Ok(())
     }
 
     pub fn prev_tab(&mut self) -> Result<()> {
-        if self.tab_list.is_empty() {
-            return Ok(());
+        if let Some(item) = self.curr_idx {
+            let len = self.tab_list.len();
+            self.curr_idx = Some((item + len - 1) % len);
         }
-
-        self.idx = (self.idx - 1).max(0);
 
         Ok(())
     }
@@ -137,7 +149,7 @@ impl TabState {
             tab.title = page.title.clone();
             tab.is_loading = false;
             tab.content = Some(Arc::new(page));
-            
+
             // tab cleanup
             self.evict_loaded_tabs(tab_id);
 
