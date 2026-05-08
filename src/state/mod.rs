@@ -330,7 +330,7 @@ impl State {
         if let Some((tab_id, task_type)) = to_load {
             if let Some(tab) = self.term_state.tab_state.curr_tab_mut() {
                 tab.is_loading = true;
-                tab.scroll_idx = 0;
+                // tab.scroll_idx = 0;
             }
             self.spawn_page(task_type, tab_id)?;
         }

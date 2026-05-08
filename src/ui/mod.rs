@@ -165,7 +165,10 @@ impl Term {
                 state.term_state.tab_state.prev_tab()?;
                 state.ensure_current_tab_loaded()?;
             }
-            (KeyCode::Char('d'), Mode::Normal) => state.term_state.tab_state.del_tab()?,
+            (KeyCode::Char('d'), Mode::Normal) => {
+                state.term_state.tab_state.del_tab()?;
+                state.ensure_current_tab_loaded()?;
+            }
             (KeyCode::Char('o'), Mode::Normal) => {
                 if let Some(popup) = state.term_state.pop_up.as_ref() {
                     // open current popup list item inside this app

@@ -184,7 +184,8 @@ impl TabState {
             }
 
             tab.content = None;
-            tab.scroll_idx = 0;
+            // remember closed tab scroll idx
+            // tab.scroll_idx = 0;
             tab.is_loading = false;
             loaded_count -= 1;
         }
