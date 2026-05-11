@@ -65,7 +65,7 @@ impl ParserTrait for FetchUrl {
 
         let root = if let Some(el) = doc.select(&main_sel).find(|node| {
             let style = node.value().attr("style").unwrap_or("");
-            // hiding hidden (??) elements
+            // hiding hidden elements
             !style.contains("display: none")
                 && !style.contains("display:none")
                 && !style.contains("visibility: hidden")
@@ -156,6 +156,8 @@ fn walk(parts: &mut Text, el: ElementRef, base_url: &Url, page_links: &mut Vec<L
             handle_list(parts, el, base_url, is_ol, page_links)
         }
         "table" | "tbody" => {}
+        // TODO: implement inheritance
+        // <h1> <span></span></h1> should also be treated as root h1
         "h1" | "h2" | "h3" => {
             push_newline(parts);
             iter_items(parts, el, base_url, page_links);
@@ -406,5 +408,14 @@ fn push_link_segment(segments: &mut Vec<Link>, label: String, url: String) {
             text: label,
             url,
         });
+    }
+}
+
+#[cfg(test)]
+mod fetch_url_test {
+    #[test]
+    #[ignore = "Not implemented"]
+    fn fetch_url_test() {
+        todo!();
     }
 }

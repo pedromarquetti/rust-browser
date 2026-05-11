@@ -23,7 +23,7 @@ pub mod tab_state;
 pub mod term;
 pub mod webclient_state;
 
-static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
+pub static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
 pub trait ListTrait {
     fn to_list_item(&self, width: u16) -> ListItem<'static>;
@@ -387,4 +387,16 @@ impl State {
         });
         Ok(())
     }
+}
+
+#[cfg(test)]
+mod test {
+
+    #[test]
+    #[ignore = "Not implemented"]
+    fn state_test() {
+        todo!();
+    }
+
+
 }

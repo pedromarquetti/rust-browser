@@ -19,3 +19,24 @@ pub async fn get_req<U: IntoUrl + Clone>(client: &Client, url: U) -> Result<Resp
             )
         })
 }
+
+#[cfg(test)]
+mod test {
+    use anyhow::Result;
+    use std::time::Duration;
+
+    use reqwest::Client;
+
+    use crate::{client::fetcher::get_req, state::APP_USER_AGENT};
+
+    #[tokio::test]
+    async fn get_req_test() -> Result<()> {
+        let client = Client::builder()
+            .timeout(Duration::from_secs(30))
+            .user_agent(APP_USER_AGENT)
+            .build()?;
+
+        get_req(&client, "http://example.com").await?;
+        Ok(())
+    }
+}

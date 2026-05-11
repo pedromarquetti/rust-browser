@@ -191,3 +191,71 @@ impl TabState {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use crate::state::{State, TaskType, tab_state::TabState};
+    use anyhow::Result;
+
+    fn make_tab() -> TabState {
+        State::new()
+            .expect("Could not create State")
+            .term_state
+            .tab_state
+    }
+
+    fn add_tab<S: ToString>(state: &mut TabState, title: S) -> i32 {
+        state
+            .new_tab(title.to_string(), TaskType::Search("".to_string()))
+            .expect("Could not create new tab")
+    }
+
+    /// checks if idx and id are the values we expected
+    fn check_idx(state: &mut TabState, expected_idx: usize, expected_id: i32) {
+        assert_eq!(state.curr_idx, Some(expected_idx), "curr idx");
+        assert_eq!(state.curr_tab().unwrap().id, expected_id, "tab id");
+    }
+
+    #[test]
+    fn tab_idx_test() -> Result<()> {
+        let mut state = make_tab();
+        add_tab(&mut state, "Tab1");
+        check_idx(&mut state, 0, 0);
+
+        add_tab(&mut state, "Tab2");
+        check_idx(&mut state, 1, 1);
+
+        add_tab(&mut state, "Tab3");
+        check_idx(&mut state, 2, 2);
+
+        // went from tab 3 (last) to first tab (tab wrap test)
+        state.next_tab()?;
+        check_idx(&mut state, 0, 0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn tab_del_test() -> Result<()> {
+        let mut state = make_tab();
+        add_tab(&mut state, "Tab1");
+        check_idx(&mut state, 0, 0);
+
+        add_tab(&mut state, "Tab2");
+        check_idx(&mut state, 1, 1);
+
+        state.del_tab()?;
+
+        check_idx(&mut state, 0, 0);
+
+        add_tab(&mut state, "Tab3");
+        add_tab(&mut state, "Tab4");
+        add_tab(&mut state, "Tab5");
+        check_idx(&mut state, 3, 4);
+        state.del_tab()?;
+        check_idx(&mut state, 2, 3);
+
+        Ok(())
+    }
+}
