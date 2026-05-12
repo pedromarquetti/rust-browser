@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
-use anyhow::{anyhow, bail};
-use ratatui::{style::Stylize, text::Text, widgets::ListState};
+use anyhow::{Result, anyhow, bail};
+use ratatui::{style::Stylize, text::Text};
 use reqwest::{Client, Response, Url};
 use scraper::{ElementRef, Html, Node, Selector};
 
@@ -53,17 +53,13 @@ impl WebClientTrait for FetchUrl {
     }
 }
 
-impl ParserTrait for FetchUrl {
-    fn to_parsed_page(&self, url: Url, tab_id: i32) -> anyhow::Result<super::parser::ParsedPage> {
-        let mut page_str: Text = Text::from("");
-        let mut page_links: Vec<Link> = vec![];
-
-        let doc = Html::parse_document(&self.data);
-
+impl FetchUrl {
+    /// Handles getting specific selectors from HTML
+    pub fn html_selector<'s, 'h>(&'s self, html: &'h Html) -> Result<ElementRef<'h>> {
         let main_sel =
             Selector::parse("main, article, body").map_err(|e| anyhow!(e.to_string()))?;
 
-        let root = if let Some(el) = doc.select(&main_sel).find(|node| {
+        if let Some(el) = html.select(&main_sel).find(|node| {
             let style = node.value().attr("style").unwrap_or("");
             // hiding hidden elements
             !style.contains("display: none")
@@ -71,28 +67,30 @@ impl ParserTrait for FetchUrl {
                 && !style.contains("visibility: hidden")
                 && !style.contains("visibility:hidden")
         }) {
-            el
+            return Ok(el);
         } else {
             // Fallback to document root as ElementRef by selecting html tag if present
-            if let Some(html_el) = doc.select(&Selector::parse("html").unwrap()).next() {
-                html_el
-            } else {
-                // If no html tag, bail out with simple text
-                let mut state = ListState::default();
-                state.select(Some(0));
-
-                return Ok(ParsedPage {
-                    title: url.to_string(),
-                    url: url.to_string(),
-                    raw_text: self.data.clone(),
-                    parsed_content: ParsedContent::Text(Text::from(self.data.clone())),
-                    state: state.into(),
-                    ..Default::default()
-                });
-            }
+            // if let Some(html_el) = html.select(&Selector::parse("html").unwrap()).next() {
+            //     html_el
+            // } else {
+            //     // If no html tag, bail out with simple text
+            //     return Err(anyhow!("no HTML tag"));
+            // }
+            return Err(anyhow!("Invalid HTML"));
         };
+    }
+}
 
-        walk(&mut page_str, root, &url, &mut page_links);
+impl ParserTrait for FetchUrl {
+    fn to_parsed_page(&self, url: Url, tab_id: i32) -> anyhow::Result<super::parser::ParsedPage> {
+        let mut page_str: Text = Text::from("");
+        let mut page_links: Vec<Link> = vec![];
+
+        let doc = Html::parse_document(&self.data);
+
+        let to_readable = self.html_selector(&doc)?;
+
+        walk(&mut page_str, to_readable, &url, &mut page_links);
 
         let raw_str = page_str.to_string();
 
@@ -412,10 +410,76 @@ fn push_link_segment(segments: &mut Vec<Link>, label: String, url: String) {
 }
 
 #[cfg(test)]
-mod fetch_url_test {
+mod test {
+    use crate::client::{
+        fetch_url::{FetchUrl, walk},
+        parser::Link,
+    };
+    use anyhow::Result;
+    use ratatui::text::Text;
+    use reqwest::Url;
+    use scraper::Html;
+    use std::str::FromStr;
+
+    fn return_common() -> (Text<'static>, Vec<Link>, FetchUrl, Url) {
+        let parts: Text = Text::from("");
+        let page_links: Vec<Link> = vec![];
+        let url = Url::from_str("https://example.com").expect("invalid URL");
+        let f = FetchUrl::new(url.clone());
+        return (parts, page_links, f, url);
+    }
+
     #[test]
-    #[ignore = "Not implemented"]
-    fn fetch_url_test() {
-        todo!();
+    fn nested_html_test() -> Result<()> {
+        let (mut parts, mut page_links, f, url) = return_common();
+        let val = r#"
+        <html lang="en">
+        <body>
+            <h1>h1</h1> // +2
+            <h2>h2</h2> // +1 
+            <div> // +1 
+              <div> // +1
+                <p>div div p</p> // +1
+              </div>
+            </div>
+            <div>   // +1
+              div oi
+            </div>
+            <ul>
+              <li>li1</li> +2
+              <li>li2</li> +2 
+            </ul> 
+        </body> +2
+        </html>
+        "#;
+        let html = Html::parse_document(val);
+        let el = f.html_selector(&html)?;
+
+        walk(&mut parts, el, &url, &mut page_links);
+        assert_eq!(parts.iter().len(), 13);
+
+        println!("{:#?}", parts);
+        Ok(())
+    }
+
+    #[test]
+    fn simple_html_test() -> Result<()> {
+        let (mut parts, mut page_links, f, url) = return_common();
+        let val = r#"
+        <!DOCTYPE html>
+        <html lang="en">
+            <body>
+            oi
+            </body>
+        </html>
+        "#;
+        let html = Html::parse_document(val);
+        let el = f.html_selector(&html)?;
+
+        walk(&mut parts, el, &url, &mut page_links);
+        println!("{:?}", parts);
+        assert_eq!(parts.iter().len(), 1);
+
+        Ok(())
     }
 }
