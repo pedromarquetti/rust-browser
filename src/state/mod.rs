@@ -389,14 +389,3 @@ impl State {
     }
 }
 
-#[cfg(test)]
-mod test {
-
-    #[test]
-    #[ignore = "Not implemented"]
-    fn state_test() {
-        todo!();
-    }
-
-
-}

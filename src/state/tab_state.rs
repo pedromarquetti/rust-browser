@@ -218,6 +218,13 @@ mod test {
     }
 
     #[test]
+    fn empty_del() -> Result<()> {
+        let mut state = make_tab();
+        state.del_tab()?;
+        Ok(())
+    }
+
+    #[test]
     fn tab_idx_test() -> Result<()> {
         let mut state = make_tab();
         add_tab(&mut state, "Tab1");
@@ -232,6 +239,9 @@ mod test {
         // went from tab 3 (last) to first tab (tab wrap test)
         state.next_tab()?;
         check_idx(&mut state, 0, 0);
+
+        state.prev_tab()?; // test wrap again <-first ... last <-
+        check_idx(&mut state, 2, 2);
 
         Ok(())
     }
