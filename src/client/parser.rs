@@ -67,7 +67,7 @@ impl Display for StrPos {
 
 impl ParsedPage {
     /// This func fills ParsedPage::pos with a vec of results
-    pub fn get_search_pos<S>(&self, pattern: &S)
+    pub fn get_search_pos<S>(&self, pattern: S)
     where
         S: Display + ToString,
     {
@@ -209,7 +209,7 @@ impl ParsedPage {
 
         let items = match &self.parsed_content {
             ParsedContent::PartList(list) => {
-                // gets list items 
+                // gets list items
                 list.iter().map(|part| part.to_list_item(width)).collect()
             }
             ParsedContent::Text(_) => Vec::new(),
@@ -243,6 +243,22 @@ pub enum ParsedContent {
     Text(Text<'static>),
     #[default]
     Empty,
+}
+
+impl Display for ParsedContent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            ParsedContent::Text(t) => {
+                write!(f, "{t}")
+            }
+            ParsedContent::PartList(l) => {
+                write!(f, "{:#?}", l)
+            }
+            _ => {
+                write!(f, "")
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -305,5 +321,45 @@ impl ListTrait for Link {
 impl Display for Link {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} - {}", self.title, self.url)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use anyhow::Result;
+
+    use crate::client::parser::{ParsedContent, ParsedPage};
+
+    fn common_parsed_page() -> Result<ParsedPage> {
+        let mut p = ParsedPage::default();
+
+        let data = String::from(
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\nenim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\nDuis enim aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.\n Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+        );
+
+        p.raw_text = data.clone();
+        p.parsed_content = ParsedContent::Text(data.into());
+        p.get_search_pos("enim");
+        p.to_wrapped_string(80);
+
+        Ok(p)
+    }
+
+    #[test]
+    fn test_get_pos() -> Result<()> {
+        let mut p = common_parsed_page()?;
+        let search_pos = p.pos.get_mut();
+
+        assert_eq!(search_pos.len(), 2);
+
+        for i in search_pos.iter_mut() {
+            if i.line == 1 {
+                assert_eq!(i.idx, 0, "First match idx assert");
+            } else {
+                assert_eq!(i.idx, 5, "Second match idx assert");
+            };
+        };
+
+        Ok(())
     }
 }

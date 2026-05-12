@@ -430,6 +430,82 @@ mod test {
     }
 
     #[test]
+    fn test_href() -> Result<()> {
+        let (mut parts, mut page_links, f, url) = return_common();
+
+        let val = r#"
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+            </head>
+            <body>
+            <a href="http://example.com">Example domain</a>
+            <a href="http://example.com">Example domain</a>
+            </body>
+            </html>
+            "#;
+
+        let html = Html::parse_document(val);
+        let el = f.html_selector(&html)?;
+
+        walk(&mut parts, el, &url, &mut page_links);
+
+        assert_eq!(page_links.len(), 2);
+
+        for i in page_links.iter() {
+            assert_eq!(i.url, String::from("http://example.com/"));
+            assert_eq!(i.text, String::from("Example domain"));
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_ignore_fetchurl() -> Result<()> {
+        let (mut parts, mut page_links, f, url) = return_common();
+        let val = r#"
+        <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <title>Document</title>
+                    <script>
+                      console.log("oi")
+                    </script>
+                </head>
+                <body>
+                    <nav>
+                      <ol>
+                        <li></li>
+                      </ol>
+                    </nav>
+                    <div class="dropdown">
+                    </div>
+                    <div hidden>
+                    </div>
+                    <input type="text" name="inputname" value="s">
+                    <form>
+                      
+                    <label for="test"></label>
+                    </form>
+                    
+                </body>
+
+                </html>
+
+        "#;
+        let html = Html::parse_document(val);
+        let el = f.html_selector(&html)?;
+
+        walk(&mut parts, el, &url, &mut page_links);
+        println!("{:#?}", parts);
+        assert_eq!(parts.iter().len(), 1);
+
+        Ok(())
+    }
+
+    #[test]
     fn nested_html_test() -> Result<()> {
         let (mut parts, mut page_links, f, url) = return_common();
         let val = r#"

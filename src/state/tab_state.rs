@@ -195,20 +195,27 @@ impl TabState {
 #[cfg(test)]
 mod test {
 
-    use crate::state::{State, TaskType, tab_state::TabState};
-    use anyhow::Result;
+    use std::str::FromStr;
 
-    fn make_tab() -> TabState {
+    use crate::{
+        client::{
+            parser::{ParsedContent, ParsedPage, ParserTrait},
+            searxng::{QueryResults, SearxInfo, SearxngResult},
+        },
+        state::{State, TaskType, tab_state::TabState},
+    };
+    use anyhow::Result;
+    use reqwest::Url;
+
+    fn make_tab_state() -> TabState {
         State::new()
             .expect("Could not create State")
             .term_state
             .tab_state
     }
 
-    fn add_tab<S: ToString>(state: &mut TabState, title: S) -> i32 {
-        state
-            .new_tab(title.to_string(), TaskType::Search("".to_string()))
-            .expect("Could not create new tab")
+    fn add_tab<S: ToString>(state: &mut TabState, title: S, tab_type: TaskType) -> Result<i32> {
+        state.new_tab(title.to_string(), tab_type)
     }
 
     /// checks if idx and id are the values we expected
@@ -219,21 +226,22 @@ mod test {
 
     #[test]
     fn empty_del() -> Result<()> {
-        let mut state = make_tab();
+        let mut state = make_tab_state();
         state.del_tab()?;
+        // this should not crash
         Ok(())
     }
 
     #[test]
     fn tab_idx_test() -> Result<()> {
-        let mut state = make_tab();
-        add_tab(&mut state, "Tab1");
+        let mut state = make_tab_state();
+        add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
         check_idx(&mut state, 0, 0);
 
-        add_tab(&mut state, "Tab2");
+        add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
         check_idx(&mut state, 1, 1);
 
-        add_tab(&mut state, "Tab3");
+        add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
         check_idx(&mut state, 2, 2);
 
         // went from tab 3 (last) to first tab (tab wrap test)
@@ -247,21 +255,86 @@ mod test {
     }
 
     #[test]
+    fn update_tab_test() -> Result<()> {
+        let mut state = make_tab_state();
+        let mut data = ParsedPage::default();
+        data.parsed_content = ParsedContent::Text("oi".into());
+        // creating empty tab
+        let id = add_tab(
+            &mut state,
+            "Tab1",
+            TaskType::Url(Url::from_str("https://example.com").expect("Expected valid url")),
+        )?;
+
+        state.update_tab_content(id, data)?;
+
+        let curr = state.curr_tab().expect("Expected valid curr tab");
+        let content = curr.content.as_ref().expect("Expected valid content").parsed_content.to_string();
+
+        assert_eq!(content, String::from("oi"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn get_selected_item_test() -> Result<()> {
+        // creating tab state
+        let mut state = make_tab_state();
+        // creating empty tab
+        let id = add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
+
+        // sample Searxng data
+        let test_str = String::from("TestStr");
+        let data = SearxngResult {
+            query: test_str.clone(),
+            results: vec![QueryResults {
+                url: String::from("example.com"),
+                title: test_str.clone(),
+                content: test_str.clone(),
+            }],
+            infoboxes: vec![SearxInfo {
+                id: "0".to_string(),
+                infobox: test_str.clone(),
+                content: test_str.clone(),
+            }],
+            ..Default::default()
+        };
+
+        // Searxng data -> ParsedPage
+        let search = data.to_parsed_page(Url::from_str("http://example.com").unwrap(), 0)?;
+        // setting tab content
+        state.update_tab_content(id, search)?;
+        let curr_tab = state.curr_tab_mut().expect("Expected curr tab");
+
+        println!("tab: {:#?}", curr_tab);
+
+        let list_item = state.get_selected_item()?;
+        print!("selected item: {:#?}", list_item);
+
+        assert_eq!(
+            list_item.content.expect("expected valid Content").text,
+            test_str
+        );
+
+        Ok(())
+    }
+
+    #[test]
     fn tab_del_test() -> Result<()> {
-        let mut state = make_tab();
-        add_tab(&mut state, "Tab1");
+        let mut state = make_tab_state();
+        add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
         check_idx(&mut state, 0, 0);
 
-        add_tab(&mut state, "Tab2");
+        add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
         check_idx(&mut state, 1, 1);
 
         state.del_tab()?;
 
         check_idx(&mut state, 0, 0);
 
-        add_tab(&mut state, "Tab3");
-        add_tab(&mut state, "Tab4");
-        add_tab(&mut state, "Tab5");
+        add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
+        add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
+        add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
         check_idx(&mut state, 3, 4);
         state.del_tab()?;
         check_idx(&mut state, 2, 3);
