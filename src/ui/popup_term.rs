@@ -44,6 +44,15 @@ impl TermType {
     pub fn warn(data: PopupData) -> Self {
         TermType::Warn(data)
     }
+
+    pub fn get_type(&self) -> String {
+        match &self {
+            TermType::Error(_) => TermType::Error(PopupData::default()).to_string(),
+            TermType::Info(_) => TermType::Info(PopupData::default()).to_string(),
+            TermType::Warn(_) => TermType::Warn(PopupData::default()).to_string(),
+        }
+    }
+
 }
 
 impl Default for TermType {

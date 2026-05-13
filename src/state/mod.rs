@@ -277,6 +277,16 @@ impl State {
             match res {
                 TaskResult::Loaded { tab_id, page } => {
                     if let Err(e) = self.term_state.tab_state.update_tab_content(tab_id, page) {
+                        if let Some(tab) = self // set tab loading to false if failed
+                            .term_state
+                            .tab_state
+                            .tab_list
+                            .iter_mut()
+                            .find(|t| t.id == tab_id)
+                        {
+                            tab.is_loading = false;
+                        };
+
                         self.create_popup(TermType::err(PopupData::Text(format!(
                             "Failed to update tab {}",
                             e
@@ -389,3 +399,44 @@ impl State {
     }
 }
 
+#[cfg(test)]
+mod test {
+    use anyhow::{Result, anyhow};
+
+    #[tokio::test]
+    async fn test_process_task_result() -> Result<()> {
+        use crate::client::parser::{ParsedContent, ParsedPage};
+        use crate::state::{State, TaskResult, TaskType};
+        use reqwest::Url;
+
+        let mut s = State::new()?;
+        let id = s
+            .term_state
+            .tab_state
+            .new_tab("loading", TaskType::Url(Url::parse("http://example.com")?))?;
+
+        // simulate loading tab before result arrives
+        s.term_state.tab_state.curr_tab_mut().unwrap().is_loading = true;
+
+        let page = ParsedPage {
+            tab_id: id,
+            title: "Loaded title".into(),
+            parsed_content: ParsedContent::Text("ok".into()),
+            raw_text: "ok".into(),
+            ..Default::default()
+        };
+
+        s.task_tx
+            .send(TaskResult::Loaded { tab_id: id, page })
+            .await
+            .map_err(|e| anyhow!("{}", e))?;
+        s.process_task_results();
+
+        let tab = s.term_state.tab_state.curr_tab().unwrap();
+        assert!(!tab.is_loading);
+        assert_eq!(tab.title, "Loaded title");
+        assert!(tab.content.is_some());
+        assert!(s.term_state.pop_up.is_none());
+        Ok(())
+    }
+}

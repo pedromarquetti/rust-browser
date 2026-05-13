@@ -155,8 +155,7 @@ impl TabState {
 
             Ok(())
         } else {
-            // Err(anyhow!("Tab with id {} not foumd", tab_id))
-            Ok(())
+            Err(anyhow!("Tab with id {} not foumd", tab_id))
         }
     }
 
@@ -214,7 +213,8 @@ mod test {
             .tab_state
     }
 
-    fn add_tab<S: ToString>(state: &mut TabState, title: S, tab_type: TaskType) -> Result<i32> {
+    /// test helper
+    fn test_add_tab<S: ToString>(state: &mut TabState, title: S, tab_type: TaskType) -> Result<i32> {
         state.new_tab(title.to_string(), tab_type)
     }
 
@@ -235,13 +235,13 @@ mod test {
     #[test]
     fn tab_idx_test() -> Result<()> {
         let mut state = make_tab_state();
-        add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
+        test_add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
         check_idx(&mut state, 0, 0);
 
-        add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
+        test_add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
         check_idx(&mut state, 1, 1);
 
-        add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
+        test_add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
         check_idx(&mut state, 2, 2);
 
         // went from tab 3 (last) to first tab (tab wrap test)
@@ -260,7 +260,7 @@ mod test {
         let mut data = ParsedPage::default();
         data.parsed_content = ParsedContent::Text("oi".into());
         // creating empty tab
-        let id = add_tab(
+        let id = test_add_tab(
             &mut state,
             "Tab1",
             TaskType::Url(Url::from_str("https://example.com").expect("Expected valid url")),
@@ -281,7 +281,7 @@ mod test {
         // creating tab state
         let mut state = make_tab_state();
         // creating empty tab
-        let id = add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
+        let id = test_add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
 
         // sample Searxng data
         let test_str = String::from("TestStr");
@@ -322,19 +322,19 @@ mod test {
     #[test]
     fn tab_del_test() -> Result<()> {
         let mut state = make_tab_state();
-        add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
+        test_add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
         check_idx(&mut state, 0, 0);
 
-        add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
+        test_add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
         check_idx(&mut state, 1, 1);
 
         state.del_tab()?;
 
         check_idx(&mut state, 0, 0);
 
-        add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
-        add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
-        add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
+        test_add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
+        test_add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
+        test_add_tab(&mut state, "Tab1", TaskType::Search("".to_string()))?;
         check_idx(&mut state, 3, 4);
         state.del_tab()?;
         check_idx(&mut state, 2, 3);
