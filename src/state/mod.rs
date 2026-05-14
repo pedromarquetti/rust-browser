@@ -178,7 +178,7 @@ impl State {
                         }
                     }
                 } else {
-                    self.create_popup(TermType::err(PopupData::Text(format!("Empty list!"))));
+                    // self.create_popup(TermType::err(PopupData::Text(format!("Search"))));
                     return Ok(());
                 }
             }

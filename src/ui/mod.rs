@@ -411,3 +411,23 @@ impl StatefulWidget for &mut Term {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::state::{State, term::PopupData};
+    use crate::ui::{Term, popup_term::TermType};
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+    #[test]
+    fn esc_closes_popup_and_resets_scroll() -> anyhow::Result<()> {
+        let mut term = Term::new();
+        let mut s = State::new()?;
+        s.term_state.scroll_idx = 5;
+        s.create_popup(TermType::info(PopupData::Text("x".into())));
+
+        term.handle_keypress(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE), &mut s)?;
+        assert!(s.term_state.pop_up.is_none());
+        assert_eq!(s.term_state.scroll_idx, 0);
+        Ok(())
+    }
+}

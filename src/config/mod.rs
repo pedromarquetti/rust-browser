@@ -113,3 +113,19 @@ impl Configs {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use crate::config::webclient_config::{AvailableSearchEngines, WebClientConfig};
+
+    #[test]
+    fn webclient_config_defaults() {
+        let c = WebClientConfig::default();
+        assert_eq!(c.search_url, "http://localhost:8080");
+        assert!(matches!(c.provider, AvailableSearchEngines::SearXNG));
+        assert_eq!(c.provider.to_string(), "searxng");
+    }
+
+
+}

@@ -145,3 +145,59 @@ pub struct QueryResults {
     pub title: String,
     pub content: String,
 }
+
+#[cfg(test)]
+mod test {
+    use crate::state::webclient_state::WebClientState;
+
+    use crate::client::{
+        parser::{PageType, ParsedContent},
+        searxng::{QueryResults, SearxInfo, SearxngResult, WebClientTrait},
+    };
+    use reqwest::Url;
+
+    #[test]
+    fn into_parsed_page_builds_search_page() -> anyhow::Result<()> {
+        let s = SearxngResult {
+            query: "rust".into(),
+            infoboxes: vec![SearxInfo {
+                id: "1".into(),
+                infobox: "Info title".into(),
+                content: "Info body".into(),
+            }],
+            results: vec![QueryResults {
+                title: "Result 1".into(),
+                url: "https://example.com".into(),
+                content: "Snippet".into(),
+            }],
+            ..Default::default()
+        };
+
+        let mut page = s.into_parsed_page(Url::parse("http://localhost:8080/search")?, 7)?;
+        assert_eq!(page.page_type, PageType::Search, "page_type check");
+        assert_eq!(page.title, "rust - SearXNG", "title check");
+
+        let items = match page.parsed_content {
+            ParsedContent::PartList(items) => items,
+            _ => panic!("expected PartList"),
+        };
+        assert_eq!(items.len(), 3); // 2 from infobox + 1 result
+        
+        page.state.get_mut().select_next();
+        assert_eq!(page.state.borrow().selected(), Some(1), "check selected item");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn searx_search_fails_with_empty_provider_url() {
+        let mut webclient = WebClientState::default(); // url empty
+        let client = reqwest::Client::new();
+
+        let err = SearxngResult::new()
+            .search("rust".into(), &mut webclient, 0, &client)
+            .await
+            .unwrap_err();
+
+        assert!(err.to_string().contains("SearXNG URL not set"));
+    }
+}
