@@ -48,8 +48,8 @@ impl StatefulWidget for &mut Page {
 
             Clear.render(inner, buf);
             match content.page_type {
-                PageType::Search => match &content.parsed_content {
-                    ParsedContent::PartList(_) => {
+                PageType::Search => {
+                    if let ParsedContent::PartList(_) = &content.parsed_content {
                         // creating cache of ListItems (search page)
                         content.search_items_cache(available_width);
                         let items = content.search_items();
@@ -67,12 +67,11 @@ impl StatefulWidget for &mut Page {
                             &mut content.state.borrow_mut(),
                         );
                     }
-                    _ => {}
-                },
+                }
                 PageType::Raw => {
                     Clear.render(inner, buf);
 
-                    // wrap parsed content 
+                    // wrap parsed content
                     // This is needed for string search functionallity
                     content.to_wrapped_string(available_width);
 

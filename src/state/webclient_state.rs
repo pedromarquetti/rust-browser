@@ -54,9 +54,7 @@ impl WebClientState {
                 let page = SearxngResult::new()
                     .search(query.clone(), self, tab_id, client)
                     .await
-                    .map_err(|err| {
-                        anyhow!("WebClient search returned error: {}", err.to_string())
-                    })?;
+                    .map_err(|err| anyhow!("WebClient search returned error: {}", err))?;
                 self.is_loading = false;
                 Ok(page)
             }
@@ -96,7 +94,6 @@ mod test {
             empty_query.to_string().contains("Invalid URL"),
             "Invalid URL check"
         );
-
     }
 
     #[tokio::test]

@@ -15,7 +15,7 @@ pub async fn get_req<U: IntoUrl + Clone>(client: &Client, url: U) -> Result<Resp
             anyhow!(
                 "Error({}): {}",
                 e.status().unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-                e.to_string(),
+                e,
             )
         })
 }
@@ -37,7 +37,7 @@ mod test {
 
     async fn server(body: &'static str) -> Result<(String, JoinHandle<Result<()>>)> {
         let listener = TcpListener::bind("127.0.0.1:0").await?;
-        println!("listening on addr {:?}",listener);
+        println!("listening on addr {:?}", listener);
         let addr = listener.local_addr()?;
 
         let handle = tokio::spawn(async move {

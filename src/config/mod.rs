@@ -126,6 +126,4 @@ mod test {
         assert!(matches!(c.provider, AvailableSearchEngines::SearXNG));
         assert_eq!(c.provider.to_string(), "searxng");
     }
-
-
 }

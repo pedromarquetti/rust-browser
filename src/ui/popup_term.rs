@@ -29,7 +29,7 @@ pub enum TermType {
 impl TermType {
     pub fn get_data(&self) -> &PopupData {
         match self {
-            Self::Info(d) | Self::Warn(d) | Self::Error(d) => return d,
+            Self::Info(d) | Self::Warn(d) | Self::Error(d) => d,
         }
     }
 
@@ -52,7 +52,6 @@ impl TermType {
             TermType::Warn(_) => TermType::Warn(PopupData::default()).to_string(),
         }
     }
-
 }
 
 impl Default for TermType {
@@ -106,9 +105,7 @@ impl PopupTerm {
             PopupData::Links(links) => {
                 let s: String = links
                     .iter()
-                    .map(|i| {
-                        return format!("{}{}", i.text, i.url);
-                    })
+                    .map(|i| format!("{}{}", i.text, i.url))
                     .collect();
                 let height = calc_height(&s, width, area, false);
                 let popup_area = popup_area(area, width, height);

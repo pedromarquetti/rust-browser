@@ -90,7 +90,7 @@ impl ParsedPage {
                 let idx = start + idx_in_line;
                 res.push(StrPos {
                     line: line_n,
-                    idx: idx,
+                    idx,
                     str_byte: curr_offset + idx,
                 });
                 start += idx_in_line + pattern.len().max(1);
@@ -358,7 +358,7 @@ mod test {
             } else {
                 assert_eq!(i.idx, 5, "Second match idx assert");
             };
-        };
+        }
 
         Ok(())
     }

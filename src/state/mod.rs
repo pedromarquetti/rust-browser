@@ -133,26 +133,26 @@ impl State {
 
     pub fn prev_search(&mut self) -> Result<()> {
         let width = self.term_state.cols.saturating_sub(2);
-        if let Some(tab) = self.term_state.tab_state.curr_tab_mut() {
-            if let Some(page) = tab.content.as_mut() {
-                if page.curr_search_idx.get() != 0 {
-                    let curr_idx = page.curr_search_idx.get();
-                    let res = page.pos.borrow().get(curr_idx as usize - 1).cloned();
-                    match res {
-                        Some(i) => {
-                            tab.scroll_idx = page.visual_line_for_byte(width, i.str_byte) as u16;
-                            page.curr_search_idx.set(curr_idx - 1);
-                        }
-                        None => {
-                            self.create_popup(TermType::err(PopupData::Text(format!(
-                                "No prev item!"
-                            ))));
-                            return Ok(());
-                        }
+        if let Some(tab) = self.term_state.tab_state.curr_tab_mut()
+            && let Some(page) = tab.content.as_mut()
+        {
+            if page.curr_search_idx.get() != 0 {
+                let curr_idx = page.curr_search_idx.get();
+                let res = page.pos.borrow().get(curr_idx as usize - 1).cloned();
+                match res {
+                    Some(i) => {
+                        tab.scroll_idx = page.visual_line_for_byte(width, i.str_byte) as u16;
+                        page.curr_search_idx.set(curr_idx - 1);
                     }
-                } else {
-                    return Ok(());
+                    None => {
+                        self.create_popup(TermType::err(PopupData::Text(
+                            "No prev item!".to_string(),
+                        )));
+                        return Ok(());
+                    }
                 }
+            } else {
+                return Ok(());
             }
         }
         Ok(())
@@ -160,27 +160,27 @@ impl State {
 
     pub fn next_search(&mut self) -> Result<()> {
         let width = self.term_state.cols.saturating_sub(2);
-        if let Some(tab) = self.term_state.tab_state.curr_tab_mut() {
-            if let Some(page) = tab.content.as_mut() {
-                if !page.pos.borrow().is_empty() {
-                    let curr_idx = page.curr_search_idx.get();
-                    let res = page.pos.borrow().get(curr_idx as usize + 1).cloned();
-                    match res {
-                        Some(i) => {
-                            tab.scroll_idx = page.visual_line_for_byte(width, i.str_byte) as u16;
-                            page.curr_search_idx.set(curr_idx + 1);
-                        }
-                        None => {
-                            self.create_popup(TermType::err(PopupData::Text(format!(
-                                "No next item!"
-                            ))));
-                            return Ok(());
-                        }
+        if let Some(tab) = self.term_state.tab_state.curr_tab_mut()
+            && let Some(page) = tab.content.as_mut()
+        {
+            if !page.pos.borrow().is_empty() {
+                let curr_idx = page.curr_search_idx.get();
+                let res = page.pos.borrow().get(curr_idx as usize + 1).cloned();
+                match res {
+                    Some(i) => {
+                        tab.scroll_idx = page.visual_line_for_byte(width, i.str_byte) as u16;
+                        page.curr_search_idx.set(curr_idx + 1);
                     }
-                } else {
-                    // self.create_popup(TermType::err(PopupData::Text(format!("Search"))));
-                    return Ok(());
+                    None => {
+                        self.create_popup(TermType::err(PopupData::Text(
+                            "No next item!".to_string(),
+                        )));
+                        return Ok(());
+                    }
                 }
+            } else {
+                // self.create_popup(TermType::err(PopupData::Text(format!("Search"))));
+                return Ok(());
             }
         }
         Ok(())
@@ -225,15 +225,13 @@ impl State {
     fn scroll_down(&mut self) -> Result<()> {
         let term_lines = self.term_state.lines;
         let width = self.term_state.cols.saturating_sub(2);
-        if let Ok(tab) = self.get_tab().as_mut() {
-            if let Some(page) = tab.content.as_mut() {
-                page.to_wrapped_string(width);
-                // uses number of lines in page to determine a scroll limit
-                if tab.scroll_idx
-                    <= page.linecount.get().unwrap_or_default() as u16 + term_lines + 4
-                {
-                    tab.scroll_idx += 1;
-                }
+        if let Ok(tab) = self.get_tab().as_mut()
+            && let Some(page) = tab.content.as_mut()
+        {
+            page.to_wrapped_string(width);
+            // uses number of lines in page to determine a scroll limit
+            if tab.scroll_idx <= page.linecount.get().unwrap_or_default() as u16 + term_lines + 4 {
+                tab.scroll_idx += 1;
             }
         }
 
@@ -366,7 +364,7 @@ impl State {
             let res = match task_type {
                 TaskType::Search(query) => {
                     match web_state.search(query, tab_id, web_client.as_ref()).await {
-                        Ok(page) => TaskResult::Loaded { tab_id, page: page },
+                        Ok(page) => TaskResult::Loaded { tab_id, page },
                         Err(e) => {
                             error!("{:#?}", e);
                             TaskResult::LoadError {

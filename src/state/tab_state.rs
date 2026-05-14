@@ -59,19 +59,19 @@ pub struct TabState {
 
 impl TabState {
     pub fn curr_tab_mut(&mut self) -> Option<&mut Tab> {
-        if let Some(idx) = self.curr_idx {
-            if let Some(tab) = self.tab_list.get_mut(idx) {
-                return Some(tab);
-            }
+        if let Some(idx) = self.curr_idx
+            && let Some(tab) = self.tab_list.get_mut(idx)
+        {
+            return Some(tab);
         };
         None
     }
 
     pub fn curr_tab(&self) -> Option<&Tab> {
-        if let Some(idx) = self.curr_idx {
-            if let Some(tab) = self.tab_list.get(idx) {
-                return Some(tab);
-            }
+        if let Some(idx) = self.curr_idx
+            && let Some(tab) = self.tab_list.get(idx)
+        {
+            return Some(tab);
         };
         None
     }
@@ -214,7 +214,11 @@ mod test {
     }
 
     /// test helper
-    fn test_add_tab<S: ToString>(state: &mut TabState, title: S, tab_type: TaskType) -> Result<i32> {
+    fn test_add_tab<S: ToString>(
+        state: &mut TabState,
+        title: S,
+        tab_type: TaskType,
+    ) -> Result<i32> {
         state.new_tab(title.to_string(), tab_type)
     }
 
@@ -269,7 +273,12 @@ mod test {
         state.update_tab_content(id, data)?;
 
         let curr = state.curr_tab().expect("Expected valid curr tab");
-        let content = curr.content.as_ref().expect("Expected valid content").parsed_content.to_string();
+        let content = curr
+            .content
+            .as_ref()
+            .expect("Expected valid content")
+            .parsed_content
+            .to_string();
 
         assert_eq!(content, String::from("oi"));
 

@@ -55,7 +55,7 @@ impl WebClientTrait for FetchUrl {
 
 impl FetchUrl {
     /// Handles getting specific selectors from HTML
-    pub fn html_selector<'s, 'h>(&'s self, html: &'h Html) -> Result<ElementRef<'h>> {
+    pub fn html_selector<'h>(&self, html: &'h Html) -> Result<ElementRef<'h>> {
         let main_sel =
             Selector::parse("main, article, body").map_err(|e| anyhow!(e.to_string()))?;
 
@@ -76,8 +76,8 @@ impl FetchUrl {
             //     // If no html tag, bail out with simple text
             //     return Err(anyhow!("no HTML tag"));
             // }
-            return Err(anyhow!("Invalid HTML"));
-        };
+            Err(anyhow!("Invalid HTML"))
+        }
     }
 }
 
@@ -216,16 +216,16 @@ fn handle_list(
     // Render each list item
     let mut index = 1;
     for child in el.children() {
-        if let Some(child_ref) = ElementRef::wrap(child) {
-            if child_ref.value().name() == "li" {
-                let bullet = if ordered {
-                    Some(format!("{}. ", index))
-                } else {
-                    Some("• ".to_string())
-                };
-                render_list_item(parts, child_ref, base_url, bullet.as_deref(), page_links);
-                index += 1;
-            }
+        if let Some(child_ref) = ElementRef::wrap(child)
+            && child_ref.value().name() == "li"
+        {
+            let bullet = if ordered {
+                Some(format!("{}. ", index))
+            } else {
+                Some("• ".to_string())
+            };
+            render_list_item(parts, child_ref, base_url, bullet.as_deref(), page_links);
+            index += 1;
         }
     }
 
@@ -290,14 +290,13 @@ fn should_skip(el: &ElementRef) -> bool {
         }
     }
 
-    if let Some(style) = el.value().attr("style") {
-        if style.contains("display: none")
+    if let Some(style) = el.value().attr("style")
+        && (style.contains("display: none")
             || style.contains("visibility: hidden")
             || style.contains("visibility:hidden")
-            || style.contains("display:none")
-        {
-            return true;
-        }
+            || style.contains("display:none"))
+    {
+        return true;
     }
     false
 }
@@ -367,7 +366,7 @@ fn push_underline_bold<S>(parts: &mut Text, s: S)
 where
     S: Display + ToString,
 {
-    parts.push_span(String::from(s.to_string()).underlined().bold());
+    parts.push_span(s.to_string().underlined().bold());
     parts.push_span(" ");
 }
 
@@ -383,7 +382,7 @@ fn push_italic<S>(parts: &mut Text, s: S)
 where
     S: Display + ToString,
 {
-    parts.push_span(String::from(s.to_string()).italic());
+    parts.push_span(s.to_string().italic());
     parts.push_span(" ");
 }
 
@@ -391,7 +390,7 @@ fn push_bold<S>(parts: &mut Text, s: S)
 where
     S: Display + ToString,
 {
-    parts.push_span(String::from(s.to_string()).bold());
+    parts.push_span(s.to_string().bold());
     parts.push_span(" ");
 }
 

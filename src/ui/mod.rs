@@ -148,15 +148,14 @@ impl Term {
                 state.ensure_current_tab_loaded()?;
             }
             (KeyCode::Char('l'), Mode::Normal) => {
-                if let Some(tab) = state.term_state.tab_state.curr_tab() {
-                    if let Some(content) = &tab.content {
-                        if content.page_type == PageType::Search {
-                            return Ok(());
-                        }
-                        state.create_popup(TermType::info(PopupData::Links(
-                            content.page_links.clone(),
-                        )));
+                if let Some(tab) = state.term_state.tab_state.curr_tab()
+                    && let Some(content) = &tab.content
+                {
+                    if content.page_type == PageType::Search {
+                        return Ok(());
                     }
+                    state
+                        .create_popup(TermType::info(PopupData::Links(content.page_links.clone())));
                 }
             }
             (KeyCode::Down, Mode::Normal) => {}
@@ -174,23 +173,20 @@ impl Term {
                     // open current popup list item inside this app
                     let idx = popup.list_state.selected().unwrap_or(0);
                     let data = popup.popup_type.get_data();
-                    match data {
-                        PopupData::Links(links) => {
-                            if let Some(link) = links.get(idx) {
-                                let url = Url::from_str(&link.url)?;
-                                state.go_to_url(url)?;
-                                state.close_popup();
-                            }
+                    if let PopupData::Links(links) = data {
+                        if let Some(link) = links.get(idx) {
+                            let url = Url::from_str(&link.url)?;
+                            state.go_to_url(url)?;
+                            state.close_popup();
                         }
-                        _ => {}
                     }
                 }
                 // current selected item by cursor (search tab) - open in this app
-                if let Ok(item) = state.term_state.tab_state.get_selected_item() {
-                    if item.link.is_some() {
-                        let url = Url::from_str(&item.link.unwrap_or_default().url)?;
-                        state.go_to_url(url)?;
-                    }
+                if let Ok(item) = state.term_state.tab_state.get_selected_item()
+                    && item.link.is_some()
+                {
+                    let url = Url::from_str(&item.link.unwrap_or_default().url)?;
+                    state.go_to_url(url)?;
                 }
             }
             // open in default browser
@@ -199,21 +195,18 @@ impl Term {
                     // open page links in default app/browser
                     let idx = popup.list_state.selected().unwrap_or(0);
                     let data = popup.popup_type.get_data();
-                    match data {
-                        PopupData::Links(links) => {
-                            if let Some(link) = links.get(idx) {
-                                let url = Url::from_str(&link.url)?;
-                                state.close_popup();
-                                open::that_detached(url.to_string().clone())?;
-                                state.create_popup(TermType::info(PopupData::Text(format!(
-                                    "{} opened in default app!",
-                                    url
-                                ))));
-                                // prevent "search result" block below from being ran
-                                return Ok(());
-                            }
+                    if let PopupData::Links(links) = data {
+                        if let Some(link) = links.get(idx) {
+                            let url = Url::from_str(&link.url)?;
+                            state.close_popup();
+                            open::that_detached(url.to_string().clone())?;
+                            state.create_popup(TermType::info(PopupData::Text(format!(
+                                "{} opened in default app!",
+                                url
+                            ))));
+                            // prevent "search result" block below from being ran
+                            return Ok(());
                         }
-                        _ => {}
                     }
                 }
 
@@ -294,23 +287,24 @@ impl Term {
                         InputType::StringSearch => {
                             info!("Entering search mode");
                             let width = state.term_state.cols.saturating_sub(2);
-                            if let Some(tab) = state.term_state.tab_state.curr_tab_mut() {
-                                if let Some(page) = tab.content.as_mut() {
-                                    // resetting idx
-                                    page.curr_search_idx.set(0);
-                                    page.get_search_pos(&val);
-                                    let first_match = page.pos.borrow().first().cloned();
-                                    if let Some(first_match) = first_match {
-                                        // go to search
-                                        tab.scroll_idx = page
-                                            .visual_line_for_byte(width, first_match.str_byte)
-                                            as u16;
-                                    } else {
-                                        error!("pattern {val} not found in search");
-                                        state.create_popup(TermType::err(PopupData::Text(
-                                            format!("Pattern {} not found!", val),
-                                        )));
-                                    }
+                            if let Some(tab) = state.term_state.tab_state.curr_tab_mut()
+                                && let Some(page) = tab.content.as_mut()
+                            {
+                                // resetting idx
+                                page.curr_search_idx.set(0);
+                                page.get_search_pos(&val);
+                                let first_match = page.pos.borrow().first().cloned();
+                                if let Some(first_match) = first_match {
+                                    // go to search
+                                    tab.scroll_idx = page
+                                        .visual_line_for_byte(width, first_match.str_byte)
+                                        as u16;
+                                } else {
+                                    error!("pattern {val} not found in search");
+                                    state.create_popup(TermType::err(PopupData::Text(format!(
+                                        "Pattern {} not found!",
+                                        val
+                                    ))));
                                 }
                             }
                         }

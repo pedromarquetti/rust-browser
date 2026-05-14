@@ -111,7 +111,7 @@ impl WebClientTrait for SearxngResult {
         let req = req
             .json::<SearxngResult>()
             .await
-            .map_err(|e| return anyhow!("{:#?} {:#?}", e.to_string(), e.source()))?;
+            .map_err(|e| anyhow!("{:#?} {:#?}", e.to_string(), e.source()))?;
 
         req.into_parsed_page(url, tab_id)
     }
@@ -182,9 +182,13 @@ mod test {
             _ => panic!("expected PartList"),
         };
         assert_eq!(items.len(), 3); // 2 from infobox + 1 result
-        
+
         page.state.get_mut().select_next();
-        assert_eq!(page.state.borrow().selected(), Some(1), "check selected item");
+        assert_eq!(
+            page.state.borrow().selected(),
+            Some(1),
+            "check selected item"
+        );
         Ok(())
     }
 
