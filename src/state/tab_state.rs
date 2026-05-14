@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use anyhow::{Result, anyhow};
 
@@ -17,7 +17,7 @@ const MAX_LOADED_TABS: usize = 10;
 pub struct Tab {
     pub id: i32,
     pub title: String,
-    pub content: Option<Arc<ParsedPage>>,
+    pub content: Option<Rc<ParsedPage>>,
     pub is_loading: bool,
     pub scroll_idx: u16,
     /// defines if tab contains Search or Direct URL page
@@ -148,7 +148,7 @@ impl TabState {
         if let Some(tab) = self.tab_list.iter_mut().find(|i| i.id == tab_id) {
             tab.title = page.title.clone();
             tab.is_loading = false;
-            tab.content = Some(Arc::new(page));
+            tab.content = Some(Rc::new(page));
 
             // tab cleanup
             self.evict_loaded_tabs(tab_id);

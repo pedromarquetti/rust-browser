@@ -67,7 +67,7 @@ impl FetchUrl {
                 && !style.contains("visibility: hidden")
                 && !style.contains("visibility:hidden")
         }) {
-            return Ok(el);
+            Ok(el)
         } else {
             // Fallback to document root as ElementRef by selecting html tag if present
             // if let Some(html_el) = html.select(&Selector::parse("html").unwrap()).next() {
@@ -425,7 +425,7 @@ mod test {
         let page_links: Vec<Link> = vec![];
         let url = Url::from_str("https://example.com").expect("invalid URL");
         let f = FetchUrl::new(url.clone());
-        return (parts, page_links, f, url);
+        (parts, page_links, f, url)
     }
 
     #[test]

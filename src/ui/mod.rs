@@ -173,13 +173,12 @@ impl Term {
                     // open current popup list item inside this app
                     let idx = popup.list_state.selected().unwrap_or(0);
                     let data = popup.popup_type.get_data();
-                    if let PopupData::Links(links) = data {
-                        if let Some(link) = links.get(idx) {
+                    if let PopupData::Links(links) = data
+                        && let Some(link) = links.get(idx) {
                             let url = Url::from_str(&link.url)?;
                             state.go_to_url(url)?;
                             state.close_popup();
                         }
-                    }
                 }
                 // current selected item by cursor (search tab) - open in this app
                 if let Ok(item) = state.term_state.tab_state.get_selected_item()
@@ -195,8 +194,8 @@ impl Term {
                     // open page links in default app/browser
                     let idx = popup.list_state.selected().unwrap_or(0);
                     let data = popup.popup_type.get_data();
-                    if let PopupData::Links(links) = data {
-                        if let Some(link) = links.get(idx) {
+                    if let PopupData::Links(links) = data
+                        && let Some(link) = links.get(idx) {
                             let url = Url::from_str(&link.url)?;
                             state.close_popup();
                             open::that_detached(url.to_string().clone())?;
@@ -207,7 +206,6 @@ impl Term {
                             // prevent "search result" block below from being ran
                             return Ok(());
                         }
-                    }
                 }
 
                 // search result
