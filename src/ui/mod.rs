@@ -174,11 +174,12 @@ impl Term {
                     let idx = popup.list_state.selected().unwrap_or(0);
                     let data = popup.popup_type.get_data();
                     if let PopupData::Links(links) = data
-                        && let Some(link) = links.get(idx) {
-                            let url = Url::from_str(&link.url)?;
-                            state.go_to_url(url)?;
-                            state.close_popup();
-                        }
+                        && let Some(link) = links.get(idx)
+                    {
+                        let url = Url::from_str(&link.url)?;
+                        state.go_to_url(url)?;
+                        state.close_popup();
+                    }
                 }
                 // current selected item by cursor (search tab) - open in this app
                 if let Ok(item) = state.term_state.tab_state.get_selected_item()
@@ -195,17 +196,18 @@ impl Term {
                     let idx = popup.list_state.selected().unwrap_or(0);
                     let data = popup.popup_type.get_data();
                     if let PopupData::Links(links) = data
-                        && let Some(link) = links.get(idx) {
-                            let url = Url::from_str(&link.url)?;
-                            state.close_popup();
-                            open::that_detached(url.to_string().clone())?;
-                            state.create_popup(TermType::info(PopupData::Text(format!(
-                                "{} opened in default app!",
-                                url
-                            ))));
-                            // prevent "search result" block below from being ran
-                            return Ok(());
-                        }
+                        && let Some(link) = links.get(idx)
+                    {
+                        let url = Url::from_str(&link.url)?;
+                        state.close_popup();
+                        open::that_detached(url.to_string().clone())?;
+                        state.create_popup(TermType::info(PopupData::Text(format!(
+                            "{} opened in default app!",
+                            url
+                        ))));
+                        // prevent "search result" block below from being ran
+                        return Ok(());
+                    }
                 }
 
                 // search result

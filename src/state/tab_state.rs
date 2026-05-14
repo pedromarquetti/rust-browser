@@ -261,8 +261,10 @@ mod test {
     #[test]
     fn update_tab_test() -> Result<()> {
         let mut state = make_tab_state();
-        let mut data = ParsedPage::default();
-        data.parsed_content = ParsedContent::Text("oi".into());
+        let data = ParsedPage {
+            parsed_content: ParsedContent::Text("oi".into()),
+            ..Default::default()
+        };
         // creating empty tab
         let id = test_add_tab(
             &mut state,

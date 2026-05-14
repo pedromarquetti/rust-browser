@@ -31,7 +31,7 @@ pub trait ListTrait {
 
 #[derive(Debug, Clone)]
 pub enum TaskResult {
-    Loaded { tab_id: i32, page: ParsedPage },
+    Loaded { tab_id: i32, page: Box<ParsedPage> },
     LoadError { tab_id: i32, error: String },
 }
 
@@ -274,7 +274,7 @@ impl State {
         while let Ok(res) = self.task_rx.try_recv() {
             match res {
                 TaskResult::Loaded { tab_id, page } => {
-                    if let Err(e) = self.term_state.tab_state.update_tab_content(tab_id, page) {
+                    if let Err(e) = self.term_state.tab_state.update_tab_content(tab_id, *page) {
                         if let Some(tab) = self // set tab loading to false if failed
                             .term_state
                             .tab_state
@@ -364,7 +364,10 @@ impl State {
             let res = match task_type {
                 TaskType::Search(query) => {
                     match web_state.search(query, tab_id, web_client.as_ref()).await {
-                        Ok(page) => TaskResult::Loaded { tab_id, page },
+                        Ok(page) => TaskResult::Loaded {
+                            tab_id,
+                            page: Box::new(page),
+                        },
                         Err(e) => {
                             error!("{:#?}", e);
                             TaskResult::LoadError {
@@ -378,7 +381,10 @@ impl State {
                     .fetch_url(url, tab_id, &web_client)
                     .await
                 {
-                    Ok(page) => TaskResult::Loaded { tab_id, page },
+                    Ok(page) => TaskResult::Loaded {
+                        tab_id,
+                        page: Box::new(page),
+                    },
                     Err(e) => {
                         error!("{:#?}", e);
                         TaskResult::LoadError {
@@ -425,7 +431,10 @@ mod test {
         };
 
         s.task_tx
-            .send(TaskResult::Loaded { tab_id: id, page })
+            .send(TaskResult::Loaded {
+                tab_id: id,
+                page: Box::new(page),
+            })
             .await
             .map_err(|e| anyhow!("{}", e))?;
         s.process_task_results();
