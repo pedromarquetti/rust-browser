@@ -15,6 +15,11 @@ future?) webpages!
 <img width="400"  alt="SearXNG-example" src="https://github.com/user-attachments/assets/96ce6df4-d83c-4b83-a3c3-02232004fe4b" />
 
 
+https://github.com/user-attachments/assets/382ed1ad-d6b8-4499-b3c2-06bc51124c29
+
+
+
+
 ## Features
 
 1. search using [SearXNG](searxng.org) (other search engines can be implemented)
